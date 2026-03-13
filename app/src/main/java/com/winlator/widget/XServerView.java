@@ -15,6 +15,7 @@ import androidx.collection.MutableObjectList;
 
 import com.winlator.core.Callback;
 import com.winlator.renderer.GLRenderer;
+import com.winlator.xr.XrRenderer;
 import com.winlator.xserver.XServer;
 
 import java.util.ArrayList;
@@ -32,7 +33,7 @@ public class XServerView extends GLSurfaceView {
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
         setPreserveEGLContextOnPause(true);
         this.xServer = xServer;
-        renderer = new GLRenderer(this, xServer);
+        renderer = new XrRenderer(this, xServer);
         setRenderer(renderer);
         setRenderMode(RENDERMODE_WHEN_DIRTY);
 

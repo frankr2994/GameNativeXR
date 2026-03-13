@@ -2,8 +2,8 @@ package com.winlator.renderer;
 
 import com.winlator.xserver.Drawable;
 
-class RenderableWindow {
-    final Drawable content;
+public class RenderableWindow {
+    public final Drawable content;
     short rootX;
     short rootY;
     final boolean forceFullscreen;
