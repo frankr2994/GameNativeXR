@@ -21,38 +21,79 @@ package com.winlator;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Pair;
 import android.view.Display;
 import android.content.SharedPreferences;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
 
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.preference.PreferenceManager;
+import androidx.activity.ComponentActivity;
 
+import com.winlator.container.Container;
+import com.winlator.container.ContainerManager;
+import com.winlator.winhandler.WinHandler;
 import com.winlator.xr.RuntimeMeta;
-import com.winlator.xr.RuntimePFD;
 import com.winlator.xr.RuntimePico;
+import com.winlator.xr.XrAPI;
 import com.winlator.xr.XrController;
+import com.winlator.xr.XrDialog;
+import com.winlator.xr.XrKeyboard;
+import com.winlator.xr.XrScreenHost;
+import com.winlator.xserver.Drawable;
 import com.winlator.xserver.XLock;
 import com.winlator.xserver.XServer;
+import dagger.hilt.android.AndroidEntryPoint;
 
+import static com.winlator.xr.XrInterface.AppInput;
 import static com.winlator.xr.XrInterface.ControllerButton;
 
-public class XrActivity extends XServerDisplayActivity {
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
+
+@AndroidEntryPoint
+public class XrActivity extends ComponentActivity {
+    public static final String EXTRA_CONTAINER_ID = "EXTRA_CONTAINER_ID";
+    public static final String EXTRA_REBOOT_XR = "EXTRA_REBOOT_XR";
+
     private static XrActivity instance;
+    public Container container;
+    private EditText editText;
+    private XServer xserver;
 
     // Configuration flags
-    public static boolean isImmersive = false;
-    public static boolean isSBS = false;
     private static boolean isEnabled = false;
+    public static boolean isImmersive = false;
+    private static boolean isHeadTrackingAllowed = false;
+    public static boolean isAER = false;
+    public static boolean isSBS = false;
+    public static boolean isUDP = false;
+    public static boolean isVR = false;
     public static boolean mouseEmulation;
+    public static boolean mouseLightgun;
+    public static boolean wheelEmulation;
+    public static boolean shouldRebootIn2D = true;
+    public static boolean shouldRebootInXR = false;
 
     // Rendering status
     private static long lastActive = 0;
     private static float lastDistance = 5;
+    private final ArrayList<Integer> framesyncMapping = new ArrayList<>();
+    private int lastFrameSync = 0;
+    public int lastMode3D = -1;
 
     // XR input/output
+    private XrAPI xrAPI = null;
     private XrController xrController = null;
+    private XrKeyboard xrKeyboard = null;
 
     static {
         System.loadLibrary("xr");
@@ -67,14 +108,48 @@ public class XrActivity extends XServerDisplayActivity {
         boolean curvedScreen = prefs.getBoolean("use_cs", false);
         nativeSetCurvedScreen(curvedScreen);
         mouseEmulation = prefs.getBoolean("use_xr_mouse", true);
+        mouseLightgun = prefs.getBoolean("use_xr_lightgun", false);
+        wheelEmulation = prefs.getBoolean("use_xr_wheel", false);
+        sendManufacturer(Build.MANUFACTURER.toUpperCase());
+
+        instance = this;
+        isEnabled = true;
+        shouldRebootIn2D = !getIntent().getBooleanExtra(EXTRA_REBOOT_XR, false);
+        shouldRebootInXR = getIntent().getBooleanExtra(EXTRA_REBOOT_XR, false);
+        String containerId = getIntent().getStringExtra(EXTRA_CONTAINER_ID);
+        container = new ContainerManager(this).getContainerById(containerId);
+
+        editText = new EditText(this);
+        editText.setInputType(android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        editText.setVisibility(EditText.GONE);
+
+        View host = XrScreenHost.createView(this, containerId);
+        host.setFocusable(false);
+        host.setFocusableInTouchMode(false);
+
+        DrawerLayout drawerLayout = new DrawerLayout(this);
+        drawerLayout.setId(View.generateViewId());
+        drawerLayout.setLayoutParams(new DrawerLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+        drawerLayout.addView(host);
+        drawerLayout.addView(editText);
+        setContentView(drawerLayout);
+    }
+
+    @Override
+    public synchronized void onPause() {
+        xrController.unload();
+        xrKeyboard.unload();
+        super.onPause();
     }
 
     @Override
     public synchronized void onResume() {
         super.onResume();
-        instance = this;
         xrController = new XrController();
-        sendManufacturer(Build.MANUFACTURER.toUpperCase());
+        xrKeyboard = new XrKeyboard(editText);
     }
 
     @Override
@@ -83,16 +158,58 @@ public class XrActivity extends XServerDisplayActivity {
         closeSession();
     }
 
+    public boolean onMenuItemClicked(XrDialog.MenuItem id) {
+        switch (id) {
+            case EXIT_GAME:
+                finish();
+                return true;
+            case SHOW_KEYBOARD:
+                new Thread(() -> {
+                    xrKeyboard.sleep(250); //ensure onWindowFocusChanged was called
+                    runOnUiThread(() -> {
+                        isVR = false;
+                        isAER = false;
+                        isImmersive = false;
+                        xrKeyboard.show();
+                    });
+                }).start();
+                return true;
+            case TASK_MANAGER:
+                isImmersive = false;
+                WinHandler.getInstance().exec("taskmgr.exe");
+                return true;
+            case WINDOW_SCALE:
+                lastDistance -= 1.0f;
+                if (lastDistance < 0.5f) {
+                    lastDistance = 7.0f;
+                }
+                return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        editText.setVisibility(View.GONE);
+    }
+
     public synchronized void closeSession() {
-        Intent intent = getBaseContext().getPackageManager()
-                .getLaunchIntentForPackage(getBaseContext().getPackageName());
-        if (intent != null) {
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
+        if (shouldRebootIn2D) {
+            Intent intent = getBaseContext().getPackageManager()
+                    .getLaunchIntentForPackage(getBaseContext().getPackageName());
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(intent);
+            }
         }
 
         android.os.Process.killProcess(android.os.Process.myPid());
         System.exit(0);
+    }
+
+    public XServer getXServer() {
+        return xserver;
     }
 
     public static XrActivity getInstance() {
@@ -107,37 +224,88 @@ public class XrActivity extends XServerDisplayActivity {
         return Math.abs(System.currentTimeMillis() - lastActive) < 5000;
     }
 
-    public static boolean isEnabled(Context context) {
-        if (context != null) {
-            isEnabled = PreferenceManager.getDefaultSharedPreferences(context).getBoolean("use_xr", true);
-        }
-        return isEnabled && isSupported();
+    public static boolean isEnabled() {
+        return isEnabled;
     }
 
     public static boolean isSupported() {
         return getRuntime() != null;
     }
 
-    public static void openIntent(Activity context, String containerId) {
+    public Pair<Boolean, Integer> processFramesync(Drawable drawable) {
+        // get sync pixel
+        ByteBuffer buffer = drawable.getImage((short)0, (short)0, (short)1, (short)1);
+        int b = buffer.get(0) & 0xFF;
+        int g = buffer.get(1) & 0xFF;
+        int r = buffer.get(2) & 0xFF;
+        int a = buffer.get(3) & 0xFF;
+
+        //define framesync behavior (the same as in xr/engine.h)
+        int step = 12;
+        int limit = 256;
+        int expectedLength = (limit / step) + 1;
+
+        //automatically find mapping for current color space
+        if (framesyncMapping.size() < expectedLength) {
+            if (!framesyncMapping.contains(r)) {
+                framesyncMapping.add(r);
+                framesyncMapping.sort(Comparator.comparingInt(i -> i));
+            }
+            return new Pair<>(false, b);
+        } else if (framesyncMapping.size() == expectedLength) {
+            if (!framesyncMapping.contains(r)) {
+                framesyncMapping.clear();
+                return new Pair<>(false, b);
+            }
+            r = framesyncMapping.indexOf(r) * step;
+        }
+
+        // apply the values
+        nativeSetFramesync(r, g, b, a);
+        Pair<Boolean, Integer> output = new Pair<>(lastFrameSync != r, b > 0 ? 1 : 0);
+        lastFrameSync = r;
+        return output;
+    }
+
+    public static void openIntent(Context context, String containerId, boolean xr) {
         // Create the launch intent
-        Intent intent = new Intent(context, getRuntime());
-        intent.putExtra("container_id", containerId);
+        Class runtime = xr ? getRuntime() : XrActivity.class;
+        Intent intent = new Intent(context, runtime);
+        intent.putExtra(EXTRA_CONTAINER_ID, containerId);
+        intent.putExtra(EXTRA_REBOOT_XR, !xr);
 
         // Set the flags
         final int mainDisplayId = Display.DEFAULT_DISPLAY;
         ActivityOptions options = ActivityOptions.makeBasic().setLaunchDisplayId(mainDisplayId);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK |
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                 Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         // Launch the activity
-        context.getBaseContext().startActivity(intent, options.toBundle());
-        context.finish();
+        context.startActivity(intent, options.toBundle());
+
+        // Close existing activity
+        while (context instanceof ContextWrapper) {
+            if (context instanceof Activity activity) {
+                activity.finish();
+                return;
+            }
+            context = ((ContextWrapper) context).getBaseContext();
+        }
     }
 
-    public void updateFrame() {
+    public void updateFrame(float fps, XServer xserver) {
         // Get OpenXR data
         float[] axes = instance.getAxes();
         boolean[] buttons = instance.getButtons();
+        this.xserver = xserver;
+
+        // Communication between XR and Windows apps
+        updateXrAPI(axes, buttons);
+        xrController.updateHaptics(xrAPI);
+
+        // Android UI input
+        if (!xrController.updateAndroidInput(buttons))
+            return;
 
         // Switch immersive/SBS mode
         updateShortcuts(buttons);
@@ -145,17 +313,22 @@ public class XrActivity extends XServerDisplayActivity {
         // XServer input
         try (XLock lock = instance.getXServer().lock(XServer.Lockable.WINDOW_MANAGER, XServer.Lockable.INPUT_DEVICE)) {
             if (mouseEmulation) {
-                xrController.updateMouseAxes(axes, false);
-                xrController.updateMouseSnapturn(buttons, 25);
+                xrController.updateMouseAxes(axes, isImmersive && isHeadTrackingAllowed);
+                xrController.updateMouseSnapturn(buttons, isImmersive ? 125 : 25);
+                if (mouseLightgun && !isImmersive && !isVR)
+                    xrController.updateMouseLightgun(axes, lastDistance);
             }
-            xrController.updateMouseState(buttons);
+            if (wheelEmulation && !isImmersive && !isVR) {
+                xrController.updateWheelEmulation(axes, buttons);
+            }
+            xrController.updateMouseState(buttons, fps);
             xrController.updateKeyboardButtons(buttons);
             lastActive = System.currentTimeMillis();
         }
     }
 
     private void updateShortcuts(boolean[] buttons) {
-        int primaryController = instance.container.getPrimaryController();
+        int primaryController = container.getPrimaryController();
         ControllerButton primaryGrip = primaryController == 0 ? ControllerButton.L_GRIP : ControllerButton.R_GRIP;
         ControllerButton secondaryPress = primaryController == 1 ? ControllerButton.L_THUMBSTICK_PRESS : ControllerButton.R_THUMBSTICK_PRESS;
         if (xrController.getButtonClicked(buttons, secondaryPress)) {
@@ -167,11 +340,48 @@ public class XrActivity extends XServerDisplayActivity {
         }
     }
 
+    private void updateXrAPI(float[] axes, boolean[] buttons) {
+        try {
+            if (xrAPI == null) {
+                // Set the param to true and put a udp_debug folder in your Winlator D:\ drive
+                // with a file named the IP on LAN to send XR data via UDP traffic to that IP.
+                xrAPI = new XrAPI(false);
+            }
+
+            // VR mode update
+            int vrMode = xrAPI.getIntValue(AppInput.MODE_VR);
+            isHeadTrackingAllowed = (vrMode == 0) || (vrMode == 3);
+            isUDP = vrMode > 0;
+            isVR = vrMode == 1;
+            getInstance().nativeSetUseVR(isVR);
+
+            if (isUDP) {
+                // Field of view adjustment
+                float fovx = xrAPI.getValue(AppInput.HMD_FOVX);
+                float fovy = xrAPI.getValue(AppInput.HMD_FOVY);
+                getInstance().nativeSetFoV(fovx, fovy);
+
+                // 3D mode update
+                lastMode3D = xrAPI.getIntValue(AppInput.MODE_3D);
+                if (lastMode3D >= 0) {
+                    isAER = lastMode3D == 2;
+                    isSBS = lastMode3D == 1;
+                }
+
+                // Send data into the Windows app
+                String data = xrAPI.encode(axes, buttons, 0) + xrAPI.getFlags();
+                xrAPI.send(data.getBytes(StandardCharsets.US_ASCII));
+            } else {
+                xrAPI.updateImplementation();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private static Class getRuntime() {
         if (Build.MANUFACTURER.compareToIgnoreCase("PICO") == 0) {
             return RuntimePico.class;
-        } else if (Build.MANUFACTURER.compareToIgnoreCase("PLAY FOR DREAM") == 0) {
-            return RuntimePFD.class;
         } else if (Build.MANUFACTURER.compareToIgnoreCase("OCULUS") == 0) {
             return RuntimeMeta.class;
         } else if (Build.MANUFACTURER.compareToIgnoreCase("META") == 0) {

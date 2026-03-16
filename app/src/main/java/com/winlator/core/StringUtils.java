@@ -67,18 +67,4 @@ public class StringUtils {
         int indexOfNull = value.indexOf('\0');
         return indexOfNull != -1 ? value.substring(0, indexOfNull) : value;
     }
-
-    public static String escapeDOSPath(String path) {
-        if (path == null || path.isEmpty()) {
-            return "";
-        }
-
-        // Replace backslashes with double backslashes
-        String escapedPath = path.replace("\\", "\\\\");
-
-        // Replace spaces with escaped spaces
-        escapedPath = escapedPath.replace(" ", "\\ ");
-
-        return escapedPath;
-    }
 }

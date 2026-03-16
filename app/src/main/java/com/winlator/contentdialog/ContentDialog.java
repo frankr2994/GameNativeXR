@@ -1,6 +1,5 @@
 package com.winlator.contentdialog;
 
-import android.app.Dialog;
 import android.content.Context;
 import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
@@ -18,13 +17,13 @@ import androidx.annotation.NonNull;
 import app.gamenative.R;
 import com.winlator.core.AppUtils;
 import com.winlator.core.Callback;
+import com.winlator.xr.XrContentDialog;
 
 import java.util.ArrayList;
 
-public class ContentDialog extends Dialog {
+public class ContentDialog extends XrContentDialog {
     private Runnable onConfirmCallback;
     private Runnable onCancelCallback;
-    private final View contentView;
 
     public ContentDialog(@NonNull Context context) {
         this(context, 0);

@@ -93,6 +93,7 @@ import app.gamenative.utils.PreInstallSteps
 import app.gamenative.utils.SteamTokenLogin
 import app.gamenative.utils.SteamUtils
 import com.posthog.PostHog
+import com.winlator.XrActivity
 import com.winlator.alsaserver.ALSAClient
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
@@ -1190,7 +1191,7 @@ fun XServerScreen(
                                 onGameLaunchError,
                                 navigateBack,
                             )
-                            if (!PluviaApp.isActivityInForeground && !neverSuspend) {
+                            if (!PluviaApp.isActivityInForeground && !neverSuspend && !XrActivity.isEnabled()) {
                                 PluviaApp.xEnvironment?.onPause()
                                 if (manualResumeMode) {
                                     view.post {

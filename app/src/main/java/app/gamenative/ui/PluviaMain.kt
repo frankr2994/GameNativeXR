@@ -98,6 +98,7 @@ import app.gamenative.utils.UpdateInfo
 import app.gamenative.utils.UpdateInstaller
 import app.gamenative.utils.LaunchDependencies
 import com.google.android.play.core.splitcompat.SplitCompat
+import com.winlator.XrActivity
 import com.winlator.container.Container
 import com.winlator.container.ContainerData
 import com.winlator.container.ContainerManager
@@ -149,7 +150,7 @@ private sealed class GameResolutionResult {
 private fun resolveGameAppId(context: Context, appId: String): GameResolutionResult {
     val gameSource = ContainerUtils.extractGameSourceFromContainerId(appId)
     val gameId = ContainerUtils.extractGameIdFromContainerId(appId)
-    val isInstalled = when (gameSource) {
+    var isInstalled = when (gameSource) {
         GameSource.STEAM -> {
             SteamService.isAppInstalled(gameId)
         }
@@ -169,6 +170,11 @@ private fun resolveGameAppId(context: Context, appId: String): GameResolutionRes
         GameSource.CUSTOM_GAME -> {
             CustomGameScanner.isGameInstalled(gameId)
         }
+    }
+
+    //TODO:resolve this dirty hack
+    if (XrActivity.isEnabled()) {
+        isInstalled = true
     }
 
     if (!isInstalled) {
@@ -1152,6 +1158,7 @@ fun PluviaMain(
                         }
                     }
 
+                    if (!XrActivity.isEnabled())
                     HomeScreen(
                         onClickPlay = { appId, asContainer ->
                             trackGameLaunched(appId)

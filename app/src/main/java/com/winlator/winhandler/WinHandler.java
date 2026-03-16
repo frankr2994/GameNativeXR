@@ -83,6 +83,7 @@ public class WinHandler {
     private boolean isShowingAssignDialog = false;
     private Context activity;
     private final java.util.Set<Integer> ignoredDeviceIds = new java.util.HashSet<>();
+    private static WinHandler instance = null;
 
     // Add method to set InputControlsView
     public void setInputControlsView(InputControlsView view) {
@@ -116,6 +117,11 @@ public class WinHandler {
         this.xServerView = xServerView;
         this.controllerManager = ControllerManager.getInstance();
         this.activity = xServerView.getContext();
+        instance = this;
+    }
+
+    public static WinHandler getInstance() {
+        return instance;
     }
 
     public void refreshControllerMappings() {

@@ -117,10 +117,15 @@ import app.gamenative.enums.SyncResult
 import app.gamenative.enums.Marker
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.material3.Checkbox
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import app.gamenative.NetworkMonitor
 import app.gamenative.events.AndroidEvent
 import app.gamenative.utils.MarkerUtils
 import app.gamenative.utils.createPinnedShortcut
+import com.winlator.XrActivity
 import kotlinx.coroutines.withContext
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
@@ -751,6 +756,8 @@ internal fun AppScreenContent(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
+                    var xr by rememberSaveable { mutableStateOf(XrActivity.isSupported()) }
+
                     // Integrated action bar - overlaid on hero
                     Row(
                         modifier = Modifier
@@ -786,7 +793,13 @@ internal fun AppScreenContent(
                             }
                             PrimaryActionButton(
                                 text = text,
-                                onClick = onDownloadInstallClick,
+                                onClick = {
+                                    if (xr && isInstalled) {
+                                        XrActivity.openIntent(context, displayInfo.appId, false)
+                                    } else {
+                                        onDownloadInstallClick()
+                                    }
+                                },
                                 enabled = buttonEnabled,
                                 isInstalled = isInstalled,
                                 focusRequester = playButtonFocusRequester,
@@ -849,6 +862,20 @@ internal fun AppScreenContent(
                             style = MaterialTheme.typography.labelSmall,
                             color = Color(displayInfo.compatibilityColor),
                         )
+                    }
+
+
+                    if (XrActivity.isSupported() && isInstalled) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = xr,
+                                onCheckedChange = { xr = it },
+                                enabled = buttonEnabled
+                            )
+                            Text(text = stringResource(R.string.use_openxr))
+                        }
                     }
                 }
             }

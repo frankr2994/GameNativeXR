@@ -5,9 +5,11 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.os.SystemClock;
 import android.util.Pair;
 
 import app.gamenative.R;
+
 import com.winlator.math.Mathf;
 import com.winlator.math.XForm;
 import com.winlator.renderer.material.CursorMaterial;
@@ -32,9 +34,9 @@ import javax.microedition.khronos.opengles.GL10;
 public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindowModificationListener, Pointer.OnPointerMotionListener {
     public final XServerView xServerView;
     protected final XServer xServer;
-    private final VertexAttribute quadVertices = new VertexAttribute("position", 2);
+    protected final VertexAttribute quadVertices = new VertexAttribute("position", 2);
     private final float[] tmpXForm1 = XForm.getInstance();
-    private final float[] tmpXForm2 = XForm.getInstance();
+    protected final float[] tmpXForm2 = XForm.getInstance();
     private final CursorMaterial cursorMaterial = new CursorMaterial();
     private final WindowMaterial windowMaterial = new WindowMaterial();
     public final ViewTransformation viewTransformation = new ViewTransformation();
@@ -52,6 +54,10 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     private int surfaceWidth;
     private int surfaceHeight;
     private boolean sceneInitialized = false;
+
+    private float lastFPS = 0;
+    private long lastTime = 0;
+    private int frameCount = 0;
 
     public GLRenderer(XServerView xServerView, XServer xServer) {
         this.xServerView = xServerView;
@@ -111,7 +117,6 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
         postFrame();
     }
 
-
     protected void preFrame() {
         if (toggleFullscreen) {
             fullscreen = !fullscreen;
@@ -145,10 +150,18 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
 
     protected void postWindows() {}
 
-    private void drawFrame() {
-        boolean xrFrame = false;
-        // if (XrActivity.isSupported()) xrFrame = XrActivity.getInstance().beginFrame(XrActivity.getImmersive(), XrActivity.getSBS());
+    protected float getLastFPS() {
+        if (lastTime == 0) lastTime = SystemClock.elapsedRealtime();
+        long time = SystemClock.elapsedRealtime();
+        if (time >= lastTime + 500) {
+            lastFPS = ((float)(frameCount * 1000) / (time - lastTime));
+            lastTime = time;
+            frameCount = 0;
+        }
+        return lastFPS;
+    }
 
+    private void drawFrame() {
         if (viewportNeedsUpdate && magnifierEnabled) {
             if (fullscreen) {
                 GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
@@ -208,6 +221,7 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     @Override
     public void onUpdateWindowContent(Window window) {
         xServerView.requestRender();
+        frameCount++;
     }
 
     @Override
@@ -230,21 +244,22 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     }
 
     private void renderDrawable(Drawable drawable, int x, int y, ShaderMaterial material) {
-        renderDrawable(drawable, x, y, material, false);
+        renderDrawable(drawable, x, y, material, false, 1, 1);
     }
 
     private void renderDrawable(Drawable drawable, int x, int y, ShaderMaterial material, boolean forceFullscreen) {
-        if (drawable == null) return;
+        renderDrawable(drawable, x, y, material, forceFullscreen, 1, 1);
+    }
+
+    protected void renderDrawable(Drawable drawable, int x, int y, ShaderMaterial material, boolean forceFullscreen, float sx, float sy) {
         synchronized (drawable.renderLock) {
             if (forceFullscreen) {
                 short newHeight = (short)Math.min(xServer.screenInfo.height, ((float)xServer.screenInfo.width / drawable.width) * drawable.height);
                 short newWidth = (short)(((float)newHeight / drawable.height) * drawable.width);
                 XForm.set(tmpXForm1, (xServer.screenInfo.width - newWidth) * 0.5f, (xServer.screenInfo.height - newHeight) * 0.5f, newWidth, newHeight);
             }
-            else XForm.set(tmpXForm1, x, y, drawable.width, drawable.height);
-
+            else XForm.set(tmpXForm1, x, y, drawable.width * sx, drawable.height * sy);
             XForm.multiply(tmpXForm1, tmpXForm1, tmpXForm2);
-
             if (!preDrawable(material, drawable)) return;
 
             Texture texture = drawable.getTexture();

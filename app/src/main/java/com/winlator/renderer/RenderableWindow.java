@@ -3,7 +3,7 @@ package com.winlator.renderer;
 import com.winlator.xserver.Drawable;
 
 public class RenderableWindow {
-    public final Drawable content;
+    final Drawable content;
     short rootX;
     short rootY;
     final boolean forceFullscreen;
@@ -17,5 +17,21 @@ public class RenderableWindow {
         this.rootX = (short)rootX;
         this.rootY = (short)rootY;
         this.forceFullscreen = forceFullscreen;
+    }
+
+    public short getRootX() {
+        return rootX;
+    }
+
+    public short getRootY() {
+        return rootY;
+    }
+
+    public short getWidth() {
+        return content.width;
+    }
+
+    public short getHeight() {
+        return content.height;
     }
 }

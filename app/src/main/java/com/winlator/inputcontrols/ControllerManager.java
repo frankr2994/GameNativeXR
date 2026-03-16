@@ -71,6 +71,10 @@ public class ControllerManager {
      */
     public void scanForDevices() {
         detectedDevices.clear();
+        if (inputManager == null) {
+            return;
+        }
+
         int[] deviceIds = inputManager.getInputDeviceIds();
         for (int deviceId : deviceIds) {
             InputDevice device = inputManager.getInputDevice(deviceId);
@@ -104,6 +108,10 @@ public class ControllerManager {
      * Saves the current player slot assignments and enabled states to SharedPreferences.
      */
     public void saveAssignments() {
+        if (preferences == null) {
+            return;
+        }
+
         SharedPreferences.Editor editor = preferences.edit();
         for (int i = 0; i < 4; i++) {
             // Save the assigned device identifier

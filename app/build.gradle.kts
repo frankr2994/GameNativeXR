@@ -231,6 +231,7 @@ dependencies {
 
     // Winlator
     implementation("androidx.preference:preference:1.2.1")
+    implementation(files("src/main/libs/haptic_service.aar"))
     implementation(libs.bundles.winlator)
     implementation(libs.zstd.jni) { artifact { type = "aar" } }
     implementation(libs.xz)
