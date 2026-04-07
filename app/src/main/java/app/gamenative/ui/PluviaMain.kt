@@ -1143,7 +1143,7 @@ fun PluviaMain(
                                     message = context.getString(R.string.main_recent_crash_message),
                                     confirmBtnText = context.getString(R.string.ok),
                                 )
-                            } else if (!(PrefManager.tipped || BuildConfig.GOLD)) {
+                            } else if (!(PrefManager.tipped || BuildConfig.GOLD || XrActivity.isSupported())) {
                                 viewModel.setAnnoyingDialogShown(true)
                                 msgDialogState = MessageDialogState(
                                     visible = true,
