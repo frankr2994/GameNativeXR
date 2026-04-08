@@ -1194,8 +1194,10 @@ fun XServerScreen(
                         currentXServerView.onResume()
                     }
                     else -> {
-                        Timber.d("Synchronizing XServerView renderer to current paused lifecycle state")
-                        currentXServerView.onPause()
+                        if (!XrActivity.isEnabled()) {
+                            Timber.d("Synchronizing XServerView renderer to current paused lifecycle state")
+                            currentXServerView.onPause()
+                        }
                     }
                 }
             }

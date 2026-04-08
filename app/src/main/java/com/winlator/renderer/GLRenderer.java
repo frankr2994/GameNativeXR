@@ -61,10 +61,6 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     private long lastTime = 0;
     private int frameCount = 0;
 
-    private float lastFPS = 0;
-    private long lastTime = 0;
-    private int frameCount = 0;
-
     public GLRenderer(XServerView xServerView, XServer xServer) {
         this.xServerView = xServerView;
         this.xServer = xServer;
