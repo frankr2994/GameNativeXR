@@ -2,11 +2,9 @@
 
 package app.gamenative.ui.screen.library
 
-import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
+import app.gamenative.ui.screen.library.components.ambient.AmbientDownloadOverlay
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.*
@@ -21,31 +19,32 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -71,13 +70,20 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -85,6 +91,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import app.gamenative.NetworkMonitor
 import app.gamenative.PrefManager
 import app.gamenative.R
 import app.gamenative.data.LibraryItem
@@ -97,36 +104,21 @@ import app.gamenative.ui.data.AppMenuOption
 import app.gamenative.ui.data.GameDisplayInfo
 import app.gamenative.ui.enums.AppOptionMenuType
 import app.gamenative.ui.internal.fakeAppInfo
+import app.gamenative.ui.screen.library.appscreen.AmazonAppScreen
+import app.gamenative.ui.screen.library.appscreen.CustomGameAppScreen
+import app.gamenative.ui.screen.library.appscreen.EpicAppScreen
+import app.gamenative.ui.screen.library.appscreen.GOGAppScreen
+import app.gamenative.ui.screen.library.appscreen.SteamAppScreen
 import app.gamenative.ui.screen.library.components.GameOptionsPanel
 import app.gamenative.ui.theme.PluviaTheme
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
-import app.gamenative.ui.screen.library.appscreen.SteamAppScreen
-import app.gamenative.ui.screen.library.appscreen.CustomGameAppScreen
-import app.gamenative.ui.screen.library.appscreen.GOGAppScreen
-import app.gamenative.ui.screen.library.appscreen.EpicAppScreen
-import app.gamenative.ui.screen.library.appscreen.AmazonAppScreen
+import com.winlator.XrActivity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
-import app.gamenative.enums.PathType
-import com.winlator.container.ContainerManager
-import app.gamenative.enums.SyncResult
-import app.gamenative.enums.Marker
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.material3.Checkbox
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import app.gamenative.NetworkMonitor
-import app.gamenative.events.AndroidEvent
-import app.gamenative.utils.MarkerUtils
-import app.gamenative.utils.createPinnedShortcut
-import com.winlator.XrActivity
-import kotlinx.coroutines.withContext
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -177,6 +169,7 @@ private fun PrimaryActionButton(
     isDownloading: Boolean = false,
     downloadProgress: Float = 0f,
     focusRequester: FocusRequester = remember { FocusRequester() },
+    onProgressBarPositioned: ((Rect) -> Unit)? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
@@ -198,6 +191,7 @@ private fun PrimaryActionButton(
 
     Box(
         modifier = modifier
+            .heightIn(min = 52.dp)
             .scale(scale)
             .clip(RoundedCornerShape(8.dp))
             .background(
@@ -246,15 +240,29 @@ private fun PrimaryActionButton(
                     modifier = Modifier
                         .width(80.dp)
                         .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp)),
+                        .clip(RoundedCornerShape(2.dp))
+                        .then(
+                            if (onProgressBarPositioned != null) {
+                                Modifier.onGloballyPositioned { coordinates ->
+                                    onProgressBarPositioned(coordinates.boundsInRoot())
+                                }
+                            } else {
+                                Modifier
+                            },
+                        ),
                     color = Color.White,
                     trackColor = Color.White.copy(alpha = 0.3f),
                 )
-                Text(
-                    text = "${(downloadProgress * 100).toInt()}%",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White,
-                )
+                Box(modifier = Modifier.width(36.dp), contentAlignment = Alignment.CenterEnd) {
+                    Text(
+                        text = "${(downloadProgress * 100).toInt()}%",
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontFeatureSettings = "tnum",
+                        ),
+                        color = Color.White,
+                    )
+                }
             }
         } else {
             Row(
@@ -276,6 +284,7 @@ private fun PrimaryActionButton(
         }
     }
 }
+
 
 /**
  * Icon-only action button for the overlay action bar
@@ -497,11 +506,15 @@ internal fun AppScreenContent(
     val context = LocalContext.current
     // reactive — recomposes when network state changes
     val hasInternet by NetworkMonitor.hasInternet.collectAsState()
-    val wifiConnected by NetworkMonitor.isWifiConnected.collectAsState()
-    val wifiAllowed = !PrefManager.downloadOnWifiOnly || wifiConnected
+    val hasWifiOrEthernet by NetworkMonitor.hasWifiOrEthernet.collectAsState()
+    val downloadAllowed = !PrefManager.downloadOnWifiOnly || hasWifiOrEthernet
     val scrollState = rememberScrollState()
 
     var optionsMenuVisible by remember { mutableStateOf(false) }
+
+    // Track the original progress bar bounds for ambient mode morph animation
+    var progressBarBounds by remember { mutableStateOf<Rect?>(null) }
+    var ambientInteractionCounter by remember { mutableStateOf(0) }
 
     // Focus requesters for gamepad navigation
     val playButtonFocusRequester = remember { FocusRequester() }
@@ -519,9 +532,9 @@ internal fun AppScreenContent(
 
     // Button state calculations (needed by key event handler)
     val isResume = !isDownloading && hasPartialDownload
-    val pauseResumeEnabled = if (isResume) wifiAllowed else true
+    val pauseResumeEnabled = if (isResume) downloadAllowed else true
     val isInstall = !isInstalled
-    val installEnabled = if (isInstall) wifiAllowed && hasInternet else true
+    val installEnabled = if (isInstall) downloadAllowed && hasInternet else true
     val buttonEnabled = if (isInstalled) {
         installEnabled
     } else {
@@ -545,7 +558,7 @@ internal fun AppScreenContent(
     val downloadStatusMessage by (
         downloadStatusMessageFlow?.collectAsState(initial = downloadStatusMessageFlow.value)
             ?: remember { mutableStateOf<String?>(null) }
-    )
+        )
     val downloadingLabel = stringResource(R.string.downloading)
     val downloadTimeLeftText = remember(displayInfo.appId, downloadProgress, downloadInfo, isDownloading, downloadStatusMessage) {
         val etaMs = downloadInfo?.getEstimatedTimeRemaining()
@@ -616,7 +629,22 @@ internal fun AppScreenContent(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .onKeyEvent { handleKeyEvent(it.nativeKeyEvent) },
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val pointerEvent = awaitPointerEvent(PointerEventPass.Initial)
+                        if (pointerEvent.changes.any { it.changedToDownIgnoreConsumed() }) {
+                            ambientInteractionCounter++
+                        }
+                    }
+                }
+            }
+            .onKeyEvent {
+                if (it.nativeKeyEvent.action == KeyEvent.ACTION_DOWN) {
+                    ambientInteractionCounter++
+                }
+                handleKeyEvent(it.nativeKeyEvent)
+            },
     ) {
         Column(
             modifier = Modifier
@@ -759,12 +787,17 @@ internal fun AppScreenContent(
                     var xr by rememberSaveable { mutableStateOf(XrActivity.isSupported()) }
 
                     // Integrated action bar - overlaid on hero
-                    Row(
+                    val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color.Black.copy(alpha = 0.5f))
-                            .padding(12.dp)
+                            .padding(12.dp),
+                    ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .focusGroup(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -783,12 +816,13 @@ internal fun AppScreenContent(
                                 isDownloading = isDownloading,
                                 downloadProgress = downloadProgress,
                                 focusRequester = playButtonFocusRequester,
+                                onProgressBarPositioned = { progressBarBounds = it },
                             )
                         } else {
                             val text = when {
                                 isInstalled -> stringResource(R.string.run_app)
                                 !hasInternet -> stringResource(R.string.library_need_internet)
-                                !wifiConnected && PrefManager.downloadOnWifiOnly -> stringResource(R.string.library_wifi_only_enabled)
+                                !hasWifiOrEthernet && PrefManager.downloadOnWifiOnly -> stringResource(R.string.library_wifi_only_enabled)
                                 else -> stringResource(R.string.install_app)
                             }
                             PrimaryActionButton(
@@ -806,9 +840,8 @@ internal fun AppScreenContent(
                             )
                         }
 
-                        // Download size / ETA text lives here so it can reflow
-                        // freely without affecting the fixed-width button
-                        if (isDownloading) {
+                        // Download size / ETA text — inline only in landscape
+                        if (isDownloading && !isPortrait) {
                             Column(
                                 modifier = Modifier
                                     .weight(1f)
@@ -852,6 +885,34 @@ internal fun AppScreenContent(
                                 onClick = onDeleteDownloadClick,
                             )
                         }
+                    }
+
+                    if (isDownloading && isPortrait) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (downloadSizeText.isNotEmpty()) {
+                                Text(
+                                    text = downloadSizeText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    maxLines = 1,
+                                )
+                            }
+                            if (downloadTimeLeftText.isNotEmpty()) {
+                                Text(
+                                    text = downloadTimeLeftText,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.65f),
+                                    maxLines = 1,
+                                )
+                            }
+                        }
+                    }
                     }
 
                     // Compatibility status (if applicable)
@@ -1088,6 +1149,17 @@ internal fun AppScreenContent(
             options = optionsMenu.toList(),
             modifier = Modifier.align(Alignment.CenterEnd),
         )
+
+        // Ambient mode during downloads
+        if (isDownloading) {
+            AmbientDownloadOverlay(
+                gameName = displayInfo.name,
+                downloadProgress = downloadProgress,
+                iconUrl = displayInfo.iconUrl,
+                originBounds = progressBarBounds,
+                userInteractionCounter = ambientInteractionCounter,
+            )
+        }
     }
 }
 

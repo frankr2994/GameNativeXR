@@ -145,10 +145,19 @@ class GOGAppScreen : BaseAppScreen() {
             0L
         }
 
+        val gameNameForCompatibility = game?.title ?: libraryItem.name
+        val (compatibilityMessage, compatibilityColor) = rememberCompatibilityInfo(
+            context = context,
+            gameName = gameNameForCompatibility,
+        )
+
         val displayInfo = GameDisplayInfo(
             name = game?.title ?: libraryItem.name,
             iconUrl = game?.iconUrl ?: libraryItem.iconHash,
-            heroImageUrl = game?.imageUrl ?: game?.iconUrl ?: libraryItem.iconHash,
+            heroImageUrl = game?.backgroundUrl?.ifEmpty { null }
+                ?: game?.imageUrl?.ifEmpty { null }
+                ?: game?.iconUrl
+                ?: libraryItem.iconHash,
             gameId = libraryItem.gameId, // Use gameId property which handles conversion
             appId = libraryItem.appId,
             releaseDate = releaseDateTimestamp,
@@ -156,6 +165,8 @@ class GOGAppScreen : BaseAppScreen() {
             installLocation = game?.installPath?.takeIf { it.isNotEmpty() },
             sizeOnDisk = sizeOnDisk,
             sizeFromStore = sizeFromStore,
+            compatibilityMessage = compatibilityMessage,
+            compatibilityColor = compatibilityColor,
         )
         Timber.tag(TAG).d("Returning GameDisplayInfo: name=${displayInfo.name}, iconUrl=${displayInfo.iconUrl}, heroImageUrl=${displayInfo.heroImageUrl}, developer=${displayInfo.developer}, installLocation=${displayInfo.installLocation}")
         return displayInfo
@@ -205,9 +216,7 @@ class GOGAppScreen : BaseAppScreen() {
     }
 
     override fun hasPartialDownload(context: Context, libraryItem: LibraryItem): Boolean {
-        if (isDownloading(context, libraryItem) || isInstalled(context, libraryItem)) return false
-        val installPath = GOGConstants.getGameInstallPath(libraryItem.name)
-        return File(installPath).exists() && !MarkerUtils.hasMarker(installPath, Marker.DOWNLOAD_COMPLETE_MARKER)
+        return GOGService.hasPartialDownload(libraryItem.gameId.toString(), libraryItem.name)
     }
 
     override fun onDownloadInstallClick(context: Context, libraryItem: LibraryItem, onClickPlay: (Boolean) -> Unit) {
@@ -435,9 +444,6 @@ class GOGAppScreen : BaseAppScreen() {
                 resetContainerToDefaults(context, libraryItem)
             },
         )
-    }
-    override fun getGameFolderPathForImageFetch(context: Context, libraryItem: LibraryItem): String? {
-        return null // GOG Stores full URLs in their database entry.
     }
 
     override fun observeGameState(
