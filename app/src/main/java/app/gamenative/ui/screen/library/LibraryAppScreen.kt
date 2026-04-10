@@ -888,7 +888,7 @@ internal fun AppScreenContent(
                     .padding(20.dp),
             ) {
                 // Update available banner
-                if (isUpdatePending) {
+                if (isUpdatePending && !XrActivity.isSupported()) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
