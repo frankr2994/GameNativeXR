@@ -1120,7 +1120,7 @@ fun PluviaMain(
 
                         if (shouldShowDialogs && !state.annoyingDialogShown && PluviaApp.xEnvironment == null && !SteamService.keepAlive && !MainActivity.wasLaunchedViaExternalIntent) {
                             val currentUpdateInfo = updateInfo
-                            if (currentUpdateInfo != null) {
+                            if ((currentUpdateInfo != null) && !XrActivity.isSupported()) {
                                 viewModel.setAnnoyingDialogShown(true)
                                 msgDialogState = MessageDialogState(
                                     visible = true,
