@@ -38,7 +38,6 @@ import com.winlator.renderer.material.BGRMaterial;
 import com.winlator.renderer.material.ShaderMaterial;
 import com.winlator.widget.XServerView;
 import com.winlator.xserver.Drawable;
-import com.winlator.xserver.Window;
 import com.winlator.xserver.XLock;
 import com.winlator.xserver.XServer;
 
@@ -67,16 +66,6 @@ public class XrRenderer extends GLRenderer {
 
     public XrRenderer(XServerView xServerView, XServer xServer) {
         super(xServerView, xServer);
-    }
-
-    @Override
-    public void onMapWindow(Window window) {
-        super.onMapWindow(window);
-
-        if (XrActivity.shouldRebootInXR) {
-            XrActivity instance = XrActivity.getInstance();
-            XrActivity.openIntent(instance, instance.container.id, true);
-        }
     }
 
     @Override

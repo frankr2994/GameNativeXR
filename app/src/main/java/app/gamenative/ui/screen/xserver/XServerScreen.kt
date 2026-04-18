@@ -2389,6 +2389,12 @@ private fun setupXEnvironment(
         Timber.i("---------------------------")
     }
 
+    if (XrActivity.shouldRebootInXR) {
+        val instance = XrActivity.getInstance()
+        XrActivity.openIntent(instance, instance.container.id, true)
+        return environment
+    }
+
     // Request encrypted app ticket for Steam games at launch time
     val isCustomGame = gameSource == GameSource.CUSTOM_GAME
     val gameIdForTicket = ContainerUtils.extractGameIdFromContainerId(appId)
