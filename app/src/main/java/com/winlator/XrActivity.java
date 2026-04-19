@@ -29,12 +29,8 @@ import android.util.Pair;
 import android.view.Display;
 import android.content.SharedPreferences;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.EditText;
 
-import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.preference.PreferenceManager;
-import androidx.activity.ComponentActivity;
 
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
@@ -45,10 +41,11 @@ import com.winlator.xr.XrAPI;
 import com.winlator.xr.XrController;
 import com.winlator.xr.XrDialog;
 import com.winlator.xr.XrKeyboard;
-import com.winlator.xr.XrScreenHost;
 import com.winlator.xserver.Drawable;
 import com.winlator.xserver.XLock;
 import com.winlator.xserver.XServer;
+
+import app.gamenative.MainActivity;
 import dagger.hilt.android.AndroidEntryPoint;
 
 import static com.winlator.xr.XrInterface.AppInput;
@@ -60,14 +57,17 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 @AndroidEntryPoint
-public class XrActivity extends ComponentActivity {
-    public static final String EXTRA_CONTAINER_ID = "EXTRA_CONTAINER_ID";
-    public static final String EXTRA_REBOOT_XR = "EXTRA_REBOOT_XR";
+public class XrActivity extends MainActivity {
+    private static final String ACTION_LAUNCH_GAME = "app.gamenative.LAUNCH_GAME";
+    private static final String EXTRA_APP_ID = "app_id";
+    private static final String EXTRA_CONTAINER_ID = "EXTRA_CONTAINER_ID";
+    private static final String EXTRA_GAME_SOURCE = "game_source";
+    private static final String EXTRA_REBOOT_XR = "EXTRA_REBOOT_XR";
 
     private static XrActivity instance;
     public Container container;
-    private EditText editText;
     private XServer xserver;
+    public int gameId;
 
     // Configuration flags
     private static boolean isEnabled = false;
@@ -118,30 +118,38 @@ public class XrActivity extends ComponentActivity {
         shouldRebootInXR = getIntent().getBooleanExtra(EXTRA_REBOOT_XR, false);
         String containerId = getIntent().getStringExtra(EXTRA_CONTAINER_ID);
         container = new ContainerManager(this).getContainerById(containerId);
+        gameId = getIntent().getIntExtra(EXTRA_APP_ID, -1);
 
-        editText = new EditText(this);
-        editText.setInputType(android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        editText.setVisibility(EditText.GONE);
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+            }
+            runOnUiThread(() -> {
+                Intent intent = new Intent(ACTION_LAUNCH_GAME);
+                intent.putExtra(EXTRA_APP_ID, gameId);
+                intent.putExtra(EXTRA_GAME_SOURCE, extractGameSourceFromContainerId(containerId));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                handleLaunchIntent(intent, true);
+            });
+        }).start();
+    }
 
-        View host = XrScreenHost.createView(this, containerId);
-        host.setFocusable(false);
-        host.setFocusableInTouchMode(false);
+    private String extractGameSourceFromContainerId(String containerId) {
+        String idWithoutSuffix;
+        if (containerId.contains("(")) {
+            idWithoutSuffix = containerId.substring(0, containerId.indexOf('('));
+        } else {
+            idWithoutSuffix = containerId;
+        }
 
-        DrawerLayout drawerLayout = new DrawerLayout(this);
-        drawerLayout.setId(View.generateViewId());
-        drawerLayout.setLayoutParams(new DrawerLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-        ));
-        drawerLayout.addView(host);
-        drawerLayout.addView(editText);
-        setContentView(drawerLayout);
+        int separatorIndex = idWithoutSuffix.lastIndexOf('_');
+        return idWithoutSuffix.substring(0, separatorIndex);
     }
 
     @Override
     public synchronized void onPause() {
         xrController.unload();
-        xrKeyboard.unload();
         super.onPause();
     }
 
@@ -149,7 +157,6 @@ public class XrActivity extends ComponentActivity {
     public synchronized void onResume() {
         super.onResume();
         xrController = new XrController();
-        xrKeyboard = new XrKeyboard(editText);
     }
 
     @Override
@@ -164,6 +171,9 @@ public class XrActivity extends ComponentActivity {
                 finish();
                 return true;
             case SHOW_KEYBOARD:
+                if (xrKeyboard == null) {
+                    xrKeyboard = new XrKeyboard(editText);
+                }
                 new Thread(() -> {
                     xrKeyboard.sleep(250); //ensure onWindowFocusChanged was called
                     runOnUiThread(() -> {
@@ -191,7 +201,9 @@ public class XrActivity extends ComponentActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        editText.setVisibility(View.GONE);
+        if (editText != null) {
+            editText.setVisibility(View.GONE);
+        }
     }
 
     public synchronized void closeSession() {
@@ -267,10 +279,11 @@ public class XrActivity extends ComponentActivity {
         return output;
     }
 
-    public static void openIntent(Context context, String containerId, boolean xr) {
+    public static void openIntent(Context context, String containerId, int gameId, boolean xr) {
         // Create the launch intent
         Class runtime = xr ? getRuntime() : XrActivity.class;
         Intent intent = new Intent(context, runtime);
+        intent.putExtra(EXTRA_APP_ID, gameId);
         intent.putExtra(EXTRA_CONTAINER_ID, containerId);
         intent.putExtra(EXTRA_REBOOT_XR, !xr);
 

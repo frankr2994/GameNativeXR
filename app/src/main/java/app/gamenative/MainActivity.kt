@@ -8,9 +8,12 @@ import android.content.res.Configuration
 import android.graphics.Color.TRANSPARENT
 import android.os.Build
 import android.os.Bundle
+import android.text.InputType
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.OrientationEventListener
+import android.view.View
+import android.widget.EditText
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -24,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.lifecycleScope
 import coil.ImageLoader
 import coil.disk.DiskCache
@@ -55,7 +59,10 @@ import okio.Path.Companion.toOkioPath
 import timber.log.Timber
 
 @AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+open class MainActivity : ComponentActivity() {
+
+    @JvmField
+    var editText: EditText? = null
 
     companion object {
         private var totalIndex = 0
@@ -171,6 +178,17 @@ class MainActivity : ComponentActivity() {
                 hasNotificationPermission = isGranted
             }
 
+            val localContext = LocalContext.current
+            AndroidView(
+                factory = {
+                    EditText(localContext).apply {
+                        inputType = InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                        visibility = View.GONE
+                        editText = this
+                    }
+                }
+            )
+
             LaunchedEffect(Unit) {
                 if (!hasNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -225,7 +243,7 @@ class MainActivity : ComponentActivity() {
         handleLaunchIntent(intent, isNewIntent = true)
     }
 
-    private fun handleLaunchIntent(intent: Intent, isNewIntent: Boolean = false) {
+    fun handleLaunchIntent(intent: Intent, isNewIntent: Boolean = false) {
         // recents re-delivers the same intent with this flag — don't re-launch
         if (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0) {
             Timber.d("[IntentLaunch]: Ignoring intent re-delivered from recents")

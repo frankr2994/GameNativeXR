@@ -2867,7 +2867,7 @@ private fun setupXEnvironment(
 
     if (XrActivity.shouldRebootInXR) {
         val instance = XrActivity.getInstance()
-        XrActivity.openIntent(instance, instance.container.id, true)
+        XrActivity.openIntent(instance, instance.container.id, instance.gameId, true)
         return environment
     }
 

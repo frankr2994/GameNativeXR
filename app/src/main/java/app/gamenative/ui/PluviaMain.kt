@@ -1348,7 +1348,6 @@ fun PluviaMain(
                         }
                     }
 
-                    if (!XrActivity.isEnabled())
                     HomeScreen(
                         onClickPlay = { appId, asContainer ->
                             trackGameLaunched(appId)
