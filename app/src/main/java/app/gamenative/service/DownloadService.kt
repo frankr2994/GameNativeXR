@@ -53,12 +53,10 @@ object DownloadService {
         if (lastUpdateTime < (time - 5 * 1000) || lastUpdateTime > time) {
             lastUpdateTime = time
 
-            // scan internal + all mounted external volumes, deduplicate across volumes
+            // scan all install paths, deduplicate across volumes
             val dirs = mutableSetOf<String>()
-            dirs += getSubdirectories(SteamService.internalAppInstallPath)
-            for (volPath in externalVolumePaths) {
-                val extInstallPath = java.nio.file.Paths.get(volPath, "Steam", "steamapps", "common").toString()
-                dirs += getSubdirectories(extInstallPath)
+            for (installPath in SteamService.allInstallPaths) {
+                dirs += getSubdirectories(installPath)
             }
 
             downloadDirectoryApps = dirs.toMutableList()
@@ -76,10 +74,9 @@ object DownloadService {
         return subDir.toMutableList()
     }
 
-    fun getSizeFromStoreDisplay (appId: Int): String {
-        // How big is the game? The store should know. Human readable.
+    fun getSizeFromStoreDisplay (appId: Int, branch: String = "public"): String {
         val depots = SteamService.getDownloadableDepots(appId)
-        val installBytes = depots.values.sumOf { it.manifests["public"]?.size ?: 0L }
+        val installBytes = depots.values.sumOf { (it.manifests[branch] ?: it.manifests["public"])?.size ?: 0L }
         return StorageUtils.formatBinarySize(installBytes)
     }
 

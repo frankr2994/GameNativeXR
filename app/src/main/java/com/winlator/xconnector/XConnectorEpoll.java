@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 public class XConnectorEpoll implements Runnable {
     private static final String TAG = "XConnectorEpoll";
 
+    private final String connectorLabel;
     private final ConnectionHandler connectionHandler;
     private final int epollFd;
     private Thread epollThread;
@@ -23,21 +24,39 @@ public class XConnectorEpoll implements Runnable {
     private int initialOutputBufferCapacity = 128;
     private final SparseArray<Client> connectedClients = new SparseArray<>();
 
-    private native boolean addFdToEpoll(int i, int i2);
+    private boolean addFdToEpoll(int epollFd, int fd) {
+        return XConnectorEpollNative.addFdToEpoll(epollFd, fd);
+    }
 
     public static native void closeFd(int i);
 
-    private native int createAFUnixSocket(String str);
+    private static void closeTrackedFd(int fd) {
+        XConnectorEpollNative.closeFd(fd);
+    }
 
-    private native int createEpollFd();
+    private int createAFUnixSocket(String path) {
+        return XConnectorEpollNative.createAFUnixSocket(path);
+    }
 
-    private native int createEventFd();
+    private int createEpollFd() {
+        return XConnectorEpollNative.createEpollFd();
+    }
 
-    private native boolean doEpollIndefinitely(int i, int i2, boolean z);
+    private int createEventFd() {
+        return XConnectorEpollNative.createEventFd();
+    }
 
-    private native void removeFdFromEpoll(int i, int i2);
+    private boolean doEpollIndefinitely(int epollFd, int serverFd, boolean addClientToEpoll) {
+        return XConnectorEpollNative.doEpollIndefinitely(this, epollFd, serverFd, addClientToEpoll);
+    }
 
-    private native boolean waitForSocketRead(int i, int i2);
+    private void removeFdFromEpoll(int epollFd, int fd) {
+        XConnectorEpollNative.removeFdFromEpoll(epollFd, fd);
+    }
+
+    private boolean waitForSocketRead(int clientFd, int shutdownFd) {
+        return XConnectorEpollNative.waitForSocketRead(this, clientFd, shutdownFd);
+    }
 
     static {
         System.loadLibrary("winlator");
@@ -46,6 +65,7 @@ public class XConnectorEpoll implements Runnable {
     public XConnectorEpoll(UnixSocketConfig socketConfig, ConnectionHandler connectionHandler, RequestHandler requestHandler) {
         this.connectionHandler = connectionHandler;
         this.requestHandler = requestHandler;
+        this.connectorLabel = socketConfig.path + " [" + connectionHandler.getClass().getSimpleName() + "/" + requestHandler.getClass().getSimpleName() + "]";
         int createAFUnixSocket = createAFUnixSocket(socketConfig.path);
         this.serverFd = createAFUnixSocket;
         if (createAFUnixSocket < 0) {
@@ -54,37 +74,41 @@ public class XConnectorEpoll implements Runnable {
         int createEpollFd = createEpollFd();
         this.epollFd = createEpollFd;
         if (createEpollFd < 0) {
-            closeFd(createAFUnixSocket);
+            closeTrackedFd(createAFUnixSocket);
             throw new RuntimeException("Failed to create epoll fd.");
         }
         if (!addFdToEpoll(createEpollFd, createAFUnixSocket)) {
-            closeFd(createAFUnixSocket);
-            closeFd(createEpollFd);
+            closeTrackedFd(createAFUnixSocket);
+            closeTrackedFd(createEpollFd);
             throw new RuntimeException("Failed to add server fd to epoll.");
         }
         int createEventFd = createEventFd();
         this.shutdownFd = createEventFd;
         if (!addFdToEpoll(createEpollFd, createEventFd)) {
-            closeFd(createAFUnixSocket);
-            closeFd(createEventFd);
-            closeFd(createEpollFd);
+            closeTrackedFd(createAFUnixSocket);
+            closeTrackedFd(createEventFd);
+            closeTrackedFd(createEpollFd);
             throw new RuntimeException("Failed to add shutdown fd to epoll.");
         }
-        this.epollThread = new Thread(this);
+        this.epollThread = new Thread(this, "XConnectorEpoll:" + this.connectorLabel);
+    }
+
+    private String logPrefix() {
+        return "[" + this.connectorLabel + "]";
     }
 
     public synchronized void start() {
         Thread thread;
         if (!this.running && (thread = this.epollThread) != null) {
             this.running = true;
-            Log.d(TAG, "Starting connector thread");
+            Log.d(TAG, logPrefix() + " Starting connector thread (epollFd=" + this.epollFd + ", serverFd=" + this.serverFd + ", shutdownFd=" + this.shutdownFd + ")");
             thread.start();
         }
     }
 
     public synchronized void stop() {
         if (this.running && this.epollThread != null) {
-            Log.d(TAG, "Stopping connector thread");
+            Log.d(TAG, logPrefix() + " Stopping connector thread (connectedClients=" + this.connectedClients.size() + ")");
             this.running = false;
             requestShutdown();
             while (this.epollThread.isAlive()) {
@@ -102,7 +126,7 @@ public class XConnectorEpoll implements Runnable {
         while (this.running) {
             if (!doEpollIndefinitely(this.epollFd, this.serverFd, !this.multithreadedClients && this.monitorClients)) {
                 if (this.running) {
-                    Log.e(TAG, "epoll loop exited unexpectedly; shutting down all X clients");
+                    Log.e(TAG, logPrefix() + " epoll loop exited unexpectedly; shutting down all X clients (epollFd=" + this.epollFd + ", serverFd=" + this.serverFd + ", shutdownFd=" + this.shutdownFd + ", connectedClients=" + this.connectedClients.size() + ", multithreadedClients=" + this.multithreadedClients + ", monitorClients=" + this.monitorClients + ")");
                 }
                 break;
             }
@@ -173,12 +197,12 @@ public class XConnectorEpoll implements Runnable {
                 this.connectionHandler.handleConnectionShutdown(client);
                 client.pollThread = null;
             }
-            closeFd(client.shutdownFd);
+            closeTrackedFd(client.shutdownFd);
         } else {
             this.connectionHandler.handleConnectionShutdown(client);
             removeFdFromEpoll(this.epollFd, client.clientSocket.fd);
         }
-        closeFd(client.clientSocket.fd);
+        closeTrackedFd(client.clientSocket.fd);
         this.connectedClients.remove(client.clientSocket.fd);
     }
 
@@ -189,9 +213,9 @@ public class XConnectorEpoll implements Runnable {
         }
         removeFdFromEpoll(this.epollFd, this.serverFd);
         removeFdFromEpoll(this.epollFd, this.shutdownFd);
-        closeFd(this.serverFd);
-        closeFd(this.shutdownFd);
-        closeFd(this.epollFd);
+        closeTrackedFd(this.serverFd);
+        closeTrackedFd(this.shutdownFd);
+        closeTrackedFd(this.epollFd);
     }
 
     public int getInitialInputBufferCapacity() {

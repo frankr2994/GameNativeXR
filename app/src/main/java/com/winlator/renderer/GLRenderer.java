@@ -47,6 +47,7 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     private boolean toggleFullscreen = false;
     private boolean viewportNeedsUpdate = true;
     private boolean cursorVisible = true;
+    private boolean rootWindowDownsized = false;
     private boolean screenOffsetYRelativeToCursor = false;
     private String[] unviewableWMClasses = null;
     protected float magnifierZoom = 1.0f;
@@ -54,6 +55,7 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     private int surfaceWidth;
     private int surfaceHeight;
     private boolean sceneInitialized = false;
+    private final EffectComposer effectComposer;
 
     private float lastFPS = 0;
     private long lastTime = 0;
@@ -62,6 +64,7 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     public GLRenderer(XServerView xServerView, XServer xServer) {
         this.xServerView = xServerView;
         this.xServer = xServer;
+        this.effectComposer = new EffectComposer(this);
         rootCursorDrawable = createRootCursorDrawable();
 
         quadVertices.put(new float[]{
@@ -88,6 +91,7 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
         GLES20.glEnable(GLES20.GL_BLEND);
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        effectComposer.invalidateGLResources();
         try (XLock lock = xServer.lock(XServer.Lockable.DRAWABLE_MANAGER)) {
             // iterate all known drawables; if you don't have a central list,
             // call this during updateScene() for each window's content.
@@ -113,7 +117,12 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     @Override
     public void onDrawFrame(GL10 gl) {
         preFrame();
-        drawFrame();
+        if (effectComposer.hasEffects()) {
+            effectComposer.render();
+        }
+        else {
+            drawFrame();
+        }
         postFrame();
     }
 
@@ -161,7 +170,7 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
         return lastFPS;
     }
 
-    private void drawFrame() {
+    public void drawFrame() {
         if (viewportNeedsUpdate && magnifierEnabled) {
             if (fullscreen) {
                 GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
@@ -195,7 +204,8 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
         }
 
         renderWindows(windowMaterial, false);
-        if (cursorVisible) renderCursor();
+
+        if (cursorVisible && !rootWindowDownsized) renderCursor();
 
         if (!magnifierEnabled && !fullscreen) GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
     }
@@ -284,9 +294,11 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
 
         boolean singleWindow = forceFullscreen;
         try (XLock lock = xServer.lock(XServer.Lockable.DRAWABLE_MANAGER)) {
+            rootWindowDownsized = false;
             if (fullscreen && !renderableWindows.isEmpty()) {
                 RenderableWindow root = renderableWindows.get(0);
                 if ((root.content.width < xServer.screenInfo.width) || (root.content.height < xServer.screenInfo.height)) {
+                    rootWindowDownsized = true;
                     singleWindow = true;
                 }
             }
@@ -460,5 +472,25 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     public void setMagnifierZoom(float magnifierZoom) {
         this.magnifierZoom = magnifierZoom;
         xServerView.requestRender();
+    }
+
+    public int getSurfaceWidth() {
+        return surfaceWidth;
+    }
+
+    public int getSurfaceHeight() {
+        return surfaceHeight;
+    }
+
+    public VertexAttribute getQuadVertices() {
+        return quadVertices;
+    }
+
+    public void setViewportNeedsUpdate(boolean viewportNeedsUpdate) {
+        this.viewportNeedsUpdate = viewportNeedsUpdate;
+    }
+
+    public EffectComposer getEffectComposer() {
+        return effectComposer;
     }
 }
