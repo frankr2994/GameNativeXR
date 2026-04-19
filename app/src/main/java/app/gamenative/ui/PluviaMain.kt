@@ -217,6 +217,12 @@ private fun resolveGameAppId(context: Context, appId: String): GameResolutionRes
 /** Check if launch should be deferred — Steam needs login, GOG/Epic/Amazon need service startup */
 private fun needsDeferLaunch(context: Context, appId: String): Boolean {
     val gameSource = ContainerUtils.extractGameSourceFromContainerId(appId)
+
+    //TODO: ensure the service is running
+    if (XrActivity.isEnabled()) {
+        return false
+    }
+
     return when (gameSource) {
         GameSource.STEAM -> {
             if (SteamService.isLoggedIn) return false
