@@ -112,6 +112,7 @@ fun AuthWebViewDialog(
                                     allowFileAccessFromFileURLs = false
                                     allowUniversalAccessFromFileURLs = false
                                     mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                                    userAgentString = "Mozilla/5.0 Google"
                                 }
 
                                 // Use custom WebViewClient if provided, otherwise use default
