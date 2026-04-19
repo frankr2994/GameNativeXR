@@ -144,6 +144,11 @@ private fun NavHostController.navigateFromLoginIfNeeded(
     }
 }
 
+object PlayBridge {
+    @JvmField
+    var onClickPlay: ((String, Boolean) -> Unit)? = null
+}
+
 private sealed class GameResolutionResult {
     data class Success(
         val finalAppId: String,
@@ -190,11 +195,6 @@ private fun resolveGameAppId(context: Context, appId: String): GameResolutionRes
         }
     }
 
-    //TODO:resolve this dirty hack
-    if (XrActivity.isEnabled()) {
-        isInstalled = true
-    }
-
     if (!isInstalled) {
         return GameResolutionResult.NotFound(
             gameId = gameId,
@@ -217,11 +217,6 @@ private fun resolveGameAppId(context: Context, appId: String): GameResolutionRes
 /** Check if launch should be deferred — Steam needs login, GOG/Epic/Amazon need service startup */
 private fun needsDeferLaunch(context: Context, appId: String): Boolean {
     val gameSource = ContainerUtils.extractGameSourceFromContainerId(appId)
-
-    //TODO: ensure the service is running
-    if (XrActivity.isEnabled()) {
-        return false
-    }
 
     return when (gameSource) {
         GameSource.STEAM -> {
@@ -1403,6 +1398,26 @@ fun PluviaMain(
                             )
                         },
                         isOffline = isOffline,
+                    )
+                }
+
+                PlayBridge.onClickPlay = { appId, asContainer ->
+                    trackGameLaunched(appId)
+                    viewModel.setLaunchedAppId(appId)
+                    viewModel.setBootToContainer(asContainer)
+                    viewModel.setTestGraphics(false)
+                    viewModel.setOffline(viewModel.isOffline.value)
+
+                    preLaunchApp(
+                        context = context,
+                        appId = appId,
+                        setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
+                        setLoadingProgress = viewModel::setLoadingDialogProgress,
+                        setLoadingMessage = viewModel::setLoadingDialogMessage,
+                        setMessageDialogState = { msgDialogState = it },
+                        onSuccess = viewModel::launchApp,
+                        isOffline = viewModel.isOffline.value,
+                        bootToContainer = asContainer,
                     )
                 }
 
