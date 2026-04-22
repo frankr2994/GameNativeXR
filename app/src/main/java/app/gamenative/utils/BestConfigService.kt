@@ -183,6 +183,15 @@ object BestConfigService {
             filtered.remove("executablePath")
         }
 
+        if (config.toString().contains("turnip", ignoreCase = true) && GPUBlackist.isTurnipBlacklisted()) {
+            if (matchType == "exact_gpu_match" || matchType == "gpu_family_match" || matchType == "fallback_match") {
+                filtered.remove("graphicsDriver")
+                filtered.remove("graphicsDriverVersion")
+                filtered.remove("graphicsDriverConfig")
+                return JsonObject(filtered)
+            }
+        }
+
         if (matchType == "exact_gpu_match" || matchType == "gpu_family_match") {
             // Apply all fields
             return JsonObject(filtered)
