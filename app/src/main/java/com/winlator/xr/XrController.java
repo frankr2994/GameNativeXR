@@ -28,6 +28,10 @@ import com.drbeef.externalhapticsservice.HapticsConstants;
 import com.drbeef.externalhapticsservice.HapticServiceClient;
 
 import com.winlator.XrActivity;
+import com.winlator.xr.api.XrAPI;
+import com.winlator.xr.api.XrInterface;
+import com.winlator.xr.ui.XrContentDialog;
+import com.winlator.xr.ui.XrDialog;
 import com.winlator.xserver.Keyboard;
 import com.winlator.xserver.Pointer;
 import com.winlator.xserver.XKeycode;

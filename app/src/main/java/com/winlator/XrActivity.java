@@ -35,11 +35,11 @@ import androidx.preference.PreferenceManager;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 import com.winlator.winhandler.WinHandler;
-import com.winlator.xr.RuntimeMeta;
-import com.winlator.xr.RuntimePico;
-import com.winlator.xr.XrAPI;
+import com.winlator.xr.api.XrAPI;
+import com.winlator.xr.runtime.MetaQuest;
+import com.winlator.xr.runtime.Pico;
+import com.winlator.xr.ui.XrDialog;
 import com.winlator.xr.XrController;
-import com.winlator.xr.XrDialog;
 import com.winlator.xr.XrKeyboard;
 import com.winlator.xserver.Drawable;
 import com.winlator.xserver.XLock;
@@ -49,8 +49,8 @@ import app.gamenative.MainActivity;
 import app.gamenative.ui.PlayBridge;
 import dagger.hilt.android.AndroidEntryPoint;
 
-import static com.winlator.xr.XrInterface.AppInput;
-import static com.winlator.xr.XrInterface.ControllerButton;
+import static com.winlator.xr.api.XrInterface.AppInput;
+import static com.winlator.xr.api.XrInterface.ControllerButton;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -371,11 +371,11 @@ public class XrActivity extends MainActivity {
 
     private static Class getRuntime() {
         if (Build.MANUFACTURER.compareToIgnoreCase("PICO") == 0) {
-            return RuntimePico.class;
+            return Pico.class;
         } else if (Build.MANUFACTURER.compareToIgnoreCase("OCULUS") == 0) {
-            return RuntimeMeta.class;
+            return MetaQuest.class;
         } else if (Build.MANUFACTURER.compareToIgnoreCase("META") == 0) {
-            return RuntimeMeta.class;
+            return MetaQuest.class;
         } else {
             return null;
         }

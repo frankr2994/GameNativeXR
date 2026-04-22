@@ -37,6 +37,7 @@ import com.winlator.renderer.Texture;
 import com.winlator.renderer.material.BGRMaterial;
 import com.winlator.renderer.material.ShaderMaterial;
 import com.winlator.widget.XServerView;
+import com.winlator.xr.ui.XrContentDialog;
 import com.winlator.xserver.Drawable;
 import com.winlator.xserver.XLock;
 import com.winlator.xserver.XServer;

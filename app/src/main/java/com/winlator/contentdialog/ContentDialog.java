@@ -17,7 +17,7 @@ import androidx.annotation.NonNull;
 import app.gamenative.R;
 import com.winlator.core.AppUtils;
 import com.winlator.core.Callback;
-import com.winlator.xr.XrContentDialog;
+import com.winlator.xr.ui.XrContentDialog;
 
 import java.util.ArrayList;
 
