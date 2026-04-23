@@ -25,7 +25,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 
-import com.winlator.XrActivity;
 import com.winlator.core.AppUtils;
 import com.winlator.xserver.XServer;
 

@@ -35,7 +35,7 @@ import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.preference.PreferenceManager;
 
-import com.winlator.XrActivity;
+import com.winlator.xr.XrActivity;
 import com.winlator.contentdialog.ContentDialog;
 
 import app.gamenative.R;

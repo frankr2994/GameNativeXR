@@ -115,7 +115,7 @@ import app.gamenative.ui.screen.library.components.GameOptionsPanel
 import app.gamenative.ui.theme.PluviaTheme
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
-import com.winlator.XrActivity
+import com.winlator.xr.XrActivity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

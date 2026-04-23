@@ -149,7 +149,7 @@
             android:foregroundServiceType="dataSync" />
 
         <activity
-            android:name="com.winlator.XrActivity"
+            android:name="com.winlator.xr.XrActivity"
             android:theme="@style/AppTheme"
             android:screenOrientation="landscape"
             android:exported="true"

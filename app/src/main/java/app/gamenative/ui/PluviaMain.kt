@@ -100,7 +100,6 @@ import app.gamenative.utils.UpdateInstaller
 import app.gamenative.utils.LaunchDependencies
 import app.gamenative.workshop.WorkshopManager
 import com.google.android.play.core.splitcompat.SplitCompat
-import com.winlator.XrActivity
 import com.winlator.container.Container
 import com.winlator.container.ContainerData
 import com.winlator.container.ContainerManager
@@ -108,6 +107,7 @@ import com.winlator.core.StringUtils
 import com.winlator.core.TarCompressorUtils
 import com.winlator.xenvironment.ImageFs
 import com.winlator.xenvironment.ImageFsInstaller
+import com.winlator.xr.XrActivity
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
 import java.io.File
 import java.util.Locale

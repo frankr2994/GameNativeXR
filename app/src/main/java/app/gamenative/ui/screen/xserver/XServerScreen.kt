@@ -100,7 +100,6 @@ import app.gamenative.utils.PreInstallSteps
 import app.gamenative.utils.SteamTokenLogin
 import app.gamenative.utils.SteamUtils
 import com.posthog.PostHog
-import com.winlator.XrActivity
 import com.winlator.alsaserver.ALSAClient
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
@@ -154,6 +153,7 @@ import com.winlator.xenvironment.components.VirGLRendererComponent
 import com.winlator.xenvironment.components.VortekRendererComponent
 import com.winlator.xenvironment.components.WineRequestComponent
 import com.winlator.xenvironment.components.XServerComponent
+import com.winlator.xr.XrActivity
 import com.winlator.xserver.Keyboard
 import com.winlator.xserver.Property
 import com.winlator.xserver.ScreenInfo

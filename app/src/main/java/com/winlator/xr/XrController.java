@@ -27,7 +27,6 @@ import androidx.preference.PreferenceManager;
 import com.drbeef.externalhapticsservice.HapticsConstants;
 import com.drbeef.externalhapticsservice.HapticServiceClient;
 
-import com.winlator.XrActivity;
 import com.winlator.xr.api.XrAPI;
 import com.winlator.xr.api.XrInterface;
 import com.winlator.xr.ui.XrContentDialog;

@@ -13,9 +13,9 @@ import android.widget.FrameLayout;
 import androidx.annotation.Nullable;
 import androidx.collection.MutableObjectList;
 
-import com.winlator.XrActivity;
 import com.winlator.core.Callback;
 import com.winlator.renderer.GLRenderer;
+import com.winlator.xr.XrActivity;
 import com.winlator.xr.XrRenderer;
 import com.winlator.xserver.XServer;
 
