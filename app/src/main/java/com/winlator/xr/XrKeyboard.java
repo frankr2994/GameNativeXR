@@ -33,8 +33,7 @@ public class XrKeyboard implements TextWatcher {
     private static final KeyCharacterMap chars = KeyCharacterMap.load(KeyCharacterMap.VIRTUAL_KEYBOARD);
 
     private final XrActivity instance;
-    private String lastText = "";
-    private EditText text;
+    private final EditText text;
 
     public XrKeyboard(EditText input) {
         instance = XrActivity.getInstance();
@@ -71,8 +70,7 @@ public class XrKeyboard implements TextWatcher {
     public synchronized void afterTextChanged(Editable e) {
         XServer server = instance.getXServer();
         String s = text.getEditableText().toString();
-        if (s.length() > lastText.length()) {
-            lastText = s;
+        if (s.length() > 1) {
             char c = s.charAt(s.length() - 1);
             KeyEvent[] events = chars.getEvents(new char[]{c});
             if (events != null) {
@@ -84,20 +82,17 @@ public class XrKeyboard implements TextWatcher {
                 }
             }
         } else {
-            lastText = s;
             server.keyboard.onKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL));
             sleep(50);
             server.keyboard.onKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL));
         }
-        if (s.isEmpty()) {
-            resetText();
-        }
+        resetText();
     }
 
     private synchronized void resetText() {
         text.removeTextChangedListener(this);
-        text.getEditableText().clear();
-        text.getEditableText().append(" ");
+        text.setText("~");
+        text.setSelection(1);
         text.addTextChangedListener(this);
     }
 }
