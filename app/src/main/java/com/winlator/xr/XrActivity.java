@@ -28,6 +28,7 @@ import android.os.Bundle;
 import android.util.Pair;
 import android.view.Display;
 import android.content.SharedPreferences;
+import android.view.KeyEvent;
 import android.view.View;
 
 import androidx.preference.PreferenceManager;
@@ -57,8 +58,12 @@ import java.util.Comparator;
 
 @AndroidEntryPoint
 public class XrActivity extends MainActivity {
+    public enum Flag { RESHADE, FORCE_DXGI, TRACKIR }
+
     private static final String EXTRA_CONTAINER_ID = "EXTRA_CONTAINER_ID";
     private static final String EXTRA_REBOOT_XR = "EXTRA_REBOOT_XR";
+    private static final String EXTRA_FLAGS = "EXTRA_FLAGS";
+    private static final boolean[] flags = new boolean[Flag.values().length];
 
     private static XrActivity instance;
     public Container container;
@@ -97,6 +102,8 @@ public class XrActivity extends MainActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // load config
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         boolean usePassthrough = prefs.getBoolean("use_pt", true);
         nativeSetUsePT(usePassthrough);
@@ -107,6 +114,7 @@ public class XrActivity extends MainActivity {
         wheelEmulation = prefs.getBoolean("use_xr_wheel", false);
         sendManufacturer(Build.MANUFACTURER.toUpperCase());
 
+        // set status
         instance = this;
         isEnabled = true;
         shouldRebootIn2D = !getIntent().getBooleanExtra(EXTRA_REBOOT_XR, false);
@@ -114,6 +122,15 @@ public class XrActivity extends MainActivity {
         String containerId = getIntent().getStringExtra(EXTRA_CONTAINER_ID);
         container = new ContainerManager(this).getContainerById(containerId);
 
+        // unpack flags
+        String value = getIntent().getStringExtra(EXTRA_FLAGS);
+        if (value != null) {
+            for (int i = 0; i < flags.length; i++) {
+                flags[i] = value.charAt(i) == 'T';
+            }
+        }
+
+        // run game
         new Thread(() -> {
             try {
                 Thread.sleep(1000);
@@ -163,6 +180,14 @@ public class XrActivity extends MainActivity {
             case TASK_MANAGER:
                 isImmersive = false;
                 WinHandler.getInstance().exec("taskmgr.exe");
+                return true;
+            case RESHADE_MENU:
+                isImmersive = false;
+                isSBS = false;
+                if (xrKeyboard == null) {
+                    xrKeyboard = new XrKeyboard(editText);
+                }
+                xrKeyboard.sendKey(KeyEvent.KEYCODE_MOVE_HOME);
                 return true;
             case WINDOW_SCALE:
                 lastDistance -= 1.0f;
@@ -220,6 +245,14 @@ public class XrActivity extends MainActivity {
         return getRuntime() != null;
     }
 
+    public static boolean getFlag(Flag flag) {
+        return flags[flag.ordinal()];
+    }
+
+    public static void setFlag(Flag flag, boolean value) {
+        flags[flag.ordinal()] = value;
+    }
+
     public Pair<Boolean, Integer> processFramesync(Drawable drawable) {
         // get sync pixel
         ByteBuffer buffer = drawable.getImage((short)0, (short)0, (short)1, (short)1);
@@ -256,13 +289,20 @@ public class XrActivity extends MainActivity {
     }
 
     public static void openIntent(Context context, String containerId, boolean xr) {
+        // Compress custom flags
+        StringBuilder value = new StringBuilder();
+        for (boolean flag : flags) {
+            value.append(flag ? "T" : "F");
+        }
+
         // Create the launch intent
         Class runtime = xr ? getRuntime() : XrActivity.class;
         Intent intent = new Intent(context, runtime);
         intent.putExtra(EXTRA_CONTAINER_ID, containerId);
         intent.putExtra(EXTRA_REBOOT_XR, !xr);
+        intent.putExtra(EXTRA_FLAGS, value.toString());
 
-        // Set the flags
+        // Set the activity flags
         final int mainDisplayId = Display.DEFAULT_DISPLAY;
         ActivityOptions options = ActivityOptions.makeBasic().setLaunchDisplayId(mainDisplayId);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |

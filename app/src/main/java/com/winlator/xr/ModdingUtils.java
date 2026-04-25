@@ -23,7 +23,6 @@ import android.util.Log;
 
 import com.winlator.container.Container;
 import com.winlator.core.FileUtils;
-import com.winlator.core.MSLink;
 import com.winlator.core.TarCompressorUtils;
 import com.winlator.xenvironment.ImageFs;
 
@@ -31,7 +30,6 @@ import java.io.File;
 
 public class ModdingUtils {
 
-    private static final String PATH_CHARS = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM01234567890.";
     private static final TarCompressorUtils.Type PKG_TYPE = TarCompressorUtils.Type.ZSTD;
     private static final String[] RESHADE_DIRECTX_CLONES = {"d3d10.dll", "d3d11.dll", "d3d12.dll"};
     private static final String RESHADE_DIRECTX_DLL = "dxgi.dll";
@@ -42,23 +40,18 @@ public class ModdingUtils {
     private static final String TRACKIR_PKG = "opentrack_wxr.tzst";
     private static final String TAG = "ModdingUtils";
 
-    public static File getLocalExeFile(ImageFs imageFs, String executable, Container container) {
-        int linkFollow = 0;
-        File exe = getLocalFile(imageFs, executable, container);
-        while (exe.getAbsolutePath().endsWith(".lnk")) {
-            Log.i(TAG, "Shortcut lead to shortcut " + exe.getAbsolutePath());
-            try {
-                Iterable<String[]> drives = Container.drivesIterator(container.getDrives());
-                exe = MSLink.getLocalFile(imageFs.getRootDir(), ImageFs.WINEPREFIX, drives, exe);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            linkFollow++;
-            if (linkFollow > 5) {
-                break;
+    public static File getLocalDir(ImageFs imageFs, Container container) {
+        char drive = 'A';
+        File root = new File(imageFs.getRootDir(), ImageFs.WINEPREFIX + "/drive_" + drive);
+
+        for (String[] it : Container.drivesIterator(container.getDrives())) {
+            if (it[0].compareToIgnoreCase(drive + "") == 0) {
+                root = new File(it[1]);
             }
         }
-        return exe;
+
+        File[] files = root.listFiles();
+        return files.length == 1 ? files[0] : root;
     }
 
     public static String getRuntimeForTrackIR() {
@@ -132,32 +125,6 @@ public class ModdingUtils {
         for (String name : names) {
             new File(dir, name).delete();
         }
-    }
-
-    private static File getLocalFile(ImageFs imageFs, String executable, Container container) {
-        String output = executable.substring(executable.indexOf("wine ") + 5);
-        output = output.replace(":", "");
-        char drive = output.charAt(0);
-        if ((drive >= 'A') && (drive <= 'Z')) {
-            output = (char)(drive - 'A' + 'a') + output.substring(1);
-        }
-        output = output.replaceAll("\\\\", "/");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < output.length(); i++) {
-            if (output.charAt(i) == '/' && i + 1 < output.length()) {
-                if (PATH_CHARS.indexOf(output.charAt(i + 1)) < 0) {
-                    continue;
-                }
-            }
-            sb.append(output.charAt(i));
-        }
-
-        for (String[] it : Container.drivesIterator(container.getDrives())) {
-            if (it[0].compareToIgnoreCase(drive + "") == 0) {
-                return new File(it[1], sb.substring(2));
-            }
-        }
-        return new File(imageFs.getRootDir(), ImageFs.WINEPREFIX + "/drive_" + sb);
     }
 
     private static boolean isUsingDXGI(File dst) {

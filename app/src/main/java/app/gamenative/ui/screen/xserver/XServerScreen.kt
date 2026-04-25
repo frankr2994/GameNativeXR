@@ -153,6 +153,7 @@ import com.winlator.xenvironment.components.VirGLRendererComponent
 import com.winlator.xenvironment.components.VortekRendererComponent
 import com.winlator.xenvironment.components.WineRequestComponent
 import com.winlator.xenvironment.components.XServerComponent
+import com.winlator.xr.ModdingUtils
 import com.winlator.xr.XrActivity
 import com.winlator.xserver.Keyboard
 import com.winlator.xserver.Property
@@ -2591,6 +2592,17 @@ private fun setupXEnvironment(
     }
 
     ProcessHelper.removeAllDebugCallbacks()
+
+    // Setup TrackIR emulation
+    try {
+        ModdingUtils.unpackTrackIR(context)
+        if (XrActivity.getFlag(XrActivity.Flag.TRACKIR) && (xServer.winHandler != null)) {
+            xServer.winHandler.execWithDelay(ModdingUtils.getRuntimeForTrackIR(), 10)
+        }
+    } catch (e: Exception) {
+        e.printStackTrace();
+    }
+
     // read user preferences
     val enableWineDebug = PrefManager.enableWineDebug
     val enableBox86Logs = WinlatorPrefManager.getBoolean("enable_box86_64_logs", false)
@@ -2728,6 +2740,15 @@ private fun setupXEnvironment(
                 }
             }
         }
+    }
+
+    try {
+        val dst = ModdingUtils.getLocalDir(imageFs, container)
+        val useReshade = XrActivity.getFlag(XrActivity.Flag.RESHADE)
+        val forceDXGI = useReshade && XrActivity.getFlag(XrActivity.Flag.FORCE_DXGI)
+        ModdingUtils.updateReshade(context, dst, useReshade, forceDXGI);
+    } catch (e: Exception) {
+        e.printStackTrace()
     }
 
     val environment = XEnvironment(context, imageFs)

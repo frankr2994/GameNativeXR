@@ -68,7 +68,6 @@ public class XrKeyboard implements TextWatcher {
 
     @Override
     public synchronized void afterTextChanged(Editable e) {
-        XServer server = instance.getXServer();
         String s = text.getEditableText().toString();
         if (s.length() > 1) {
             char c = s.charAt(s.length() - 1);
@@ -77,16 +76,21 @@ public class XrKeyboard implements TextWatcher {
                 boolean first = true;
                 for (KeyEvent keyEvent : events) {
                     if (!first) sleep(50);
-                    server.keyboard.onKeyEvent(keyEvent);
+                    instance.getXServer().keyboard.onKeyEvent(keyEvent);
                     first = false;
                 }
             }
         } else {
-            server.keyboard.onKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL));
-            sleep(50);
-            server.keyboard.onKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL));
+            sendKey(KeyEvent.KEYCODE_DEL);
         }
         resetText();
+    }
+
+    public void sendKey(int keycode) {
+        XServer server = instance.getXServer();
+        server.keyboard.onKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN, keycode));
+        sleep(50);
+        server.keyboard.onKeyEvent(new KeyEvent(KeyEvent.ACTION_UP, keycode));
     }
 
     private synchronized void resetText() {

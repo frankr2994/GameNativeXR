@@ -44,6 +44,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import timber.log.Timber;
 
@@ -300,6 +301,12 @@ public class WinHandler {
             this.sendData.putLong(handle);
             sendPacket(CLIENT_PORT);
         });
+    }
+
+    public void execWithDelay(String command, int delaySeconds) {
+        if (command == null || command.trim().isEmpty() || delaySeconds < 0) return;
+        Executors.newSingleThreadScheduledExecutor()
+                .schedule(() -> exec(command), delaySeconds, TimeUnit.SECONDS);
     }
 
     public void setClipboardData(final String data) {
