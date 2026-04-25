@@ -60,7 +60,7 @@ public class XrDialog extends ContentDialog {
         addMenuItem(activity, grid, R.drawable.icon_task_manager, R.string.task_manager, MenuItem.TASK_MANAGER, 1.0f);
         addMenuItem(activity, grid, R.drawable.icon_magnifier, R.string.magnifier, MenuItem.WINDOW_SCALE, 1.0f);
         if (XrActivity.getFlag(XrActivity.Flag.RESHADE)) {
-            addMenuItem(activity, grid, R.drawable.icon_popup_menu_bring_to_front, R.string.reshade, MenuItem.RESHADE_MENU, 1.0f);
+            //addMenuItem(activity, grid, R.drawable.icon_popup_menu_bring_to_front, R.string.reshade, MenuItem.RESHADE_MENU, 1.0f);
         }
         addMenuItem(activity, grid, R.drawable.icon_exit, R.string.exit_game, MenuItem.EXIT_GAME, 1.0f);
 
@@ -152,7 +152,7 @@ public class XrDialog extends ContentDialog {
         icon.setLayoutParams(lp);
         layout.addView(icon);
 
-        int width = dpToPx(96, context);
+        int width = dpToPx(80, context);
         TextView text = new TextView(context);
         text.setLayoutParams(new ViewGroup.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT));
         text.setText(context.getString(titleRes));
