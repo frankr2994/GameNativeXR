@@ -136,7 +136,7 @@ public class XrActivity extends MainActivity {
                 Thread.sleep(1000);
             } catch (Exception e) {
             }
-            runOnUiThread(() -> PlayBridge.onClickPlay.invoke(containerId, false));
+            runOnUiThread(() -> PlayBridge.onClickPlay.invoke(containerId, true));
         }).start();
     }
 
