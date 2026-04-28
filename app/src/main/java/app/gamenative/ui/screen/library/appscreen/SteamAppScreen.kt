@@ -24,7 +24,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
+import app.gamenative.ui.component.NoExtractOutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
+import app.gamenative.PrefManager
 import app.gamenative.PluviaApp
 
 import app.gamenative.R
@@ -58,8 +59,10 @@ import app.gamenative.utils.SteamUtils
 import app.gamenative.utils.StorageUtils
 import app.gamenative.workshop.WorkshopManager
 import app.gamenative.NetworkMonitor
+import app.gamenative.service.SteamService.Companion.getInstalledApp
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.posthog.PostHog
+import com.winlator.container.Container
 import com.winlator.container.ContainerData
 import com.winlator.container.ContainerManager
 import com.winlator.fexcore.FEXCoreManager
@@ -76,7 +79,9 @@ import app.gamenative.ui.theme.PluviaTheme
 import app.gamenative.ui.screen.library.GameMigrationDialog
 import app.gamenative.ui.component.dialog.state.GameManagerDialogState
 import app.gamenative.ui.util.SnackbarManager
+import app.gamenative.ui.util.SteamSaveTransfer
 import app.gamenative.utils.ContainerUtils.getContainer
+import app.gamenative.utils.CustomGameScanner
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import timber.log.Timber
@@ -457,10 +462,12 @@ class SteamAppScreen : BaseAppScreen() {
     ) {
         val gameId = libraryItem.gameId
         val appInfo = SteamService.getAppInfoOf(gameId)
-        PostHog.capture(
-            event = "container_opened",
-            properties = mapOf("game_name" to (appInfo?.name ?: "")),
-        )
+        if (PrefManager.usageAnalyticsEnabled) {
+            PostHog.capture(
+                event = "container_opened",
+                properties = mapOf("game_name" to (appInfo?.name ?: "")),
+            )
+        }
         super.onRunContainerClick(context, libraryItem, onClickPlay)
     }
 
@@ -644,6 +651,28 @@ class SteamAppScreen : BaseAppScreen() {
         )
     }
 
+    override fun supportsSaveTransfer(libraryItem: LibraryItem): Boolean {
+        return libraryItem.gameSource == app.gamenative.data.GameSource.STEAM
+    }
+
+    override suspend fun exportSaves(
+        context: Context,
+        libraryItem: LibraryItem,
+        uri: Uri,
+    ): Boolean {
+        val container = withContext(Dispatchers.IO) { ContainerUtils.getOrCreateContainer(context, libraryItem.appId) }
+        return SteamSaveTransfer.exportSaves(context, container, libraryItem.gameId, uri)
+    }
+
+    override suspend fun importSaves(
+        context: Context,
+        libraryItem: LibraryItem,
+        uri: Uri,
+    ): Boolean {
+        val container = withContext(Dispatchers.IO) { ContainerUtils.getOrCreateContainer(context, libraryItem.appId) }
+        return SteamSaveTransfer.importSaves(context, container, libraryItem.gameId, uri)
+    }
+
     @Composable
     override fun getSourceSpecificMenuOptions(
         context: Context,
@@ -751,23 +780,25 @@ class SteamAppScreen : BaseAppScreen() {
             AppMenuOption(
                 AppOptionMenuType.ForceCloudSync,
                 onClick = {
-                    PostHog.capture(
-                        event = "cloud_sync_forced",
-                        properties = mapOf("game_name" to appInfo.name),
-                    )
+                    if (PrefManager.usageAnalyticsEnabled) {
+                        PostHog.capture(
+                            event = "cloud_sync_forced",
+                            properties = mapOf("game_name" to appInfo.name),
+                        )
+                    }
                     CoroutineScope(Dispatchers.IO).launch {
+                        SnackbarManager.show(context.getString(R.string.library_cloud_sync_starting))
+
                         val steamId = SteamService.userSteamId
                         if (steamId == null) {
                             SnackbarManager.show(context.getString(R.string.steam_not_logged_in))
                             return@launch
                         }
 
-                        val containerManager = ContainerManager(context)
                         val container = ContainerUtils.getOrCreateContainer(context, appId)
-                        containerManager.activateContainer(container)
 
                         val prefixToPath: (String) -> String = { prefix ->
-                            PathType.from(prefix).toAbsPath(context, gameId, steamId.accountID)
+                            PathType.from(prefix).toAbsPath(container, gameId, steamId.accountID)
                         }
                         val syncResult = SteamService.forceSyncUserFiles(
                             appId = gameId,
@@ -776,17 +807,17 @@ class SteamAppScreen : BaseAppScreen() {
 
                         when (syncResult.syncResult) {
                             SyncResult.Success -> {
-                                SnackbarManager.show(context.getString(R.string.steam_cloud_sync_success))
+                                SnackbarManager.show(context.getString(R.string.library_cloud_sync_success))
                             }
 
                             SyncResult.UpToDate -> {
-                                SnackbarManager.show(context.getString(R.string.steam_cloud_sync_up_to_date))
+                                SnackbarManager.show(context.getString(R.string.library_cloud_sync_up_to_date))
                             }
 
                             else -> {
                                 SnackbarManager.show(
                                     context.getString(
-                                        R.string.steam_cloud_sync_failed,
+                                        R.string.library_cloud_sync_error,
                                         syncResult.syncResult,
                                     ),
                                 )
@@ -936,7 +967,9 @@ class SteamAppScreen : BaseAppScreen() {
             }
             try {
                 val info = withContext(Dispatchers.IO) {
-                    val depots = SteamService.getDownloadableDepots(gameId)
+                    val container = ContainerManager(context).getContainerById("STEAM_$gameId")
+                    val language = container?.language ?: PrefManager.containerLanguage
+                    val depots = SteamService.getDownloadableDepots(gameId, language)
                     Timber.i("There are ${depots.size} depots belonging to ${libraryItem.appId}")
                     val branch = SteamService.getInstalledApp(gameId)?.branch ?: "public"
                     val availableBytes = StorageUtils.getAvailableSpace(SteamService.defaultStoragePath)
@@ -1034,6 +1067,7 @@ class SteamAppScreen : BaseAppScreen() {
                         SteamService.workshopPausedApps.remove(gameId)
                         CoroutineScope(Dispatchers.IO).launch {
                             SteamService.deleteApp(gameId)
+                            DownloadService.invalidateCache()
                             PluviaApp.events.emit(AndroidEvent.LibraryInstallStatusChanged(gameId))
                             withContext(Dispatchers.Main) {
                                 hideInstallDialog(gameId)
@@ -1061,7 +1095,7 @@ class SteamAppScreen : BaseAppScreen() {
                                     val steamId = SteamService.userSteamId
                                     if (steamId != null) {
                                         val prefixToPath: (String) -> String = { prefix ->
-                                            PathType.from(prefix).toAbsPath(context, gameId, steamId.accountID)
+                                            PathType.from(prefix).toAbsPath(container, gameId, steamId.accountID)
                                         }
                                         SteamService.forceSyncUserFiles(
                                             appId = gameId,
@@ -1156,7 +1190,10 @@ class SteamAppScreen : BaseAppScreen() {
                             hideUninstallDialog(libraryItem.appId)
 
                             CoroutineScope(Dispatchers.IO).launch {
+                                val installedAppInfo = getInstalledApp(libraryItem.gameId)
+
                                 val success = SteamService.deleteApp(gameId)
+                                DownloadService.invalidateCache()
                                 withContext(Dispatchers.Main) {
                                     ContainerUtils.deleteContainer(context, libraryItem.appId)
                                 }
@@ -1175,6 +1212,13 @@ class SteamAppScreen : BaseAppScreen() {
                                         )
                                     } else {
                                         SnackbarManager.show(context.getString(R.string.steam_uninstall_failed))
+                                    }
+                                }
+
+                                // Back to home screen as the game is imported
+                                if (success && installedAppInfo?.isImported == true) {
+                                    withContext(Dispatchers.Main) {
+                                        onBack()
                                     }
                                 }
                             }
@@ -1244,11 +1288,31 @@ class SteamAppScreen : BaseAppScreen() {
             val appDao = remember { SteamService.instance?.appDao }
             var currentEnabledIds by remember { mutableStateOf<Set<Long>?>(null) }
 
+            // Load container for mod path override
+            val containerId = "STEAM_$gameId"
+            var workshopModPath by remember(gameId) { mutableStateOf("") }
+            val wsGameRootDir = remember(gameId) {
+                if (SteamService.isAppInstalled(gameId)) File(SteamService.getAppDirPath(gameId)) else null
+            }
+            val wsWinePrefix = remember(gameId) {
+                runCatching {
+                    val container = ContainerUtils.getContainer(context, containerId)
+                    container.getRootDir()?.let { File(it, ".wine").absolutePath } ?: ""
+                }.getOrDefault("")
+            }
+
             LaunchedEffect(gameId) {
                 val idsString = withContext(Dispatchers.IO) {
                     appDao?.getEnabledWorkshopItemIds(gameId)
                 }
                 currentEnabledIds = WorkshopManager.parseEnabledIds(idsString)
+                // Load saved mod path override
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        val container = ContainerUtils.getContainer(context, containerId)
+                        workshopModPath = container.getExtra("workshopModPath", "")
+                    }
+                }
             }
 
             val loadedIds = currentEnabledIds
@@ -1256,6 +1320,9 @@ class SteamAppScreen : BaseAppScreen() {
                 WorkshopManagerDialog(
                     visible = true,
                     currentEnabledIds = loadedIds,
+                    workshopModPath = workshopModPath,
+                    gameRootDir = wsGameRootDir,
+                    winePrefix = wsWinePrefix,
                     onGetDisplayInfo = { context ->
                         return@WorkshopManagerDialog getGameDisplayInfo(context, libraryItem)
                     },
@@ -1279,6 +1346,17 @@ class SteamAppScreen : BaseAppScreen() {
                                     gameRootDir = gameRootDir,
                                     gameName = gameName,
                                 )
+                            }
+                        }
+                    },
+                    onModPathChanged = { newPath ->
+                        workshopModPath = newPath
+                        CoroutineScope(Dispatchers.IO).launch {
+                            runCatching {
+                                val container = ContainerUtils.getContainer(context, containerId)
+                                container.putExtra("workshopModPath", if (newPath.isEmpty()) null else newPath)
+                                container.saveData()
+                                Timber.tag("Workshop").i("Workshop mod path override set to: '$newPath' for gameId=$gameId")
                             }
                         }
                     },
@@ -1390,7 +1468,7 @@ private fun SteamChangeBranchDialog(
                     expanded = branchExpanded,
                     onExpandedChange = { branchExpanded = it },
                 ) {
-                    OutlinedTextField(
+                    NoExtractOutlinedTextField(
                         value = selectedBranch,
                         onValueChange = {},
                         readOnly = true,
@@ -1418,7 +1496,7 @@ private fun SteamChangeBranchDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedTextField(
+                NoExtractOutlinedTextField(
                     value = privateBranchPassword,
                     onValueChange = {
                         privateBranchPassword = it

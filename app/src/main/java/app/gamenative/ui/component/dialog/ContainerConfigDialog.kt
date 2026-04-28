@@ -40,7 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedTextField
+import app.gamenative.ui.component.NoExtractOutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.CircularProgressIndicator
@@ -739,18 +739,15 @@ fun ContainerConfigDialog(
                 if (context.isVortekLike) "async-1.10.3" else DefaultVersion.DXVK
             } else selectedVersion
             val envSet = EnvVars(config.envVars)
-            // Update dxwrapperConfig version only when DXVK wrapper selected
-            val wrapperIsDxvk = StringUtils.parseIdentifier(dxWrappers[dxWrapperIndex]) == "dxvk"
+            // Update dxwrapperConfig version regardless of wrapper type (allows DXVK config even when VKD3D is selected)
             val kvs = KeyValueSet(config.dxwrapperConfig)
             val currentVersion = kvs.get("version")
-            // Only update if the version actually changed (don't overwrite on initial load if it matches)
-            if (wrapperIsDxvk) {
-                // Check if we need to update - only if current version doesn't match selected version
-                val needsUpdate = currentVersion.isEmpty() ||
-                    (currentVersion != version && StringUtils.parseIdentifier(currentVersion) != StringUtils.parseIdentifier(version))
-                if (needsUpdate) {
-                    kvs.put("version", version)
-                }
+            // Always allow DXVK version updates (removed wrapper type restriction)
+            // Check if we need to update - only if current version doesn't match selected version
+            val needsUpdate = currentVersion.isEmpty() ||
+                (currentVersion != version && StringUtils.parseIdentifier(currentVersion) != StringUtils.parseIdentifier(version))
+            if (needsUpdate) {
+                kvs.put("version", version)
             }
             if (version.contains("async", ignoreCase = true)) {
                 kvs.put("async", "1")
@@ -1226,7 +1223,7 @@ internal fun ExecutablePathDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
-        OutlinedTextField(
+        NoExtractOutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             readOnly = true,
