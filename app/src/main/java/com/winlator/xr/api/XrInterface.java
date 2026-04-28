@@ -20,7 +20,10 @@ package com.winlator.xr.api;
 
 import androidx.annotation.NonNull;
 
+import com.winlator.xserver.XServer;
+
 public interface XrInterface {
+
     enum AppInput {
         L_HAPTICS, R_HAPTICS, MODE_VR, MODE_3D, HMD_FOVX, HMD_FOVY
     }
@@ -39,10 +42,16 @@ public interface XrInterface {
         R_A, R_B, R_GRIP, R_THUMBSTICK_PRESS, R_THUMBSTICK_LEFT, R_THUMBSTICK_RIGHT, R_THUMBSTICK_UP, R_THUMBSTICK_DOWN, R_TRIGGER,
     }
 
-    void dataReceived(@NonNull String message);
+    enum PortIntent {
+        HMD_STATE,
+        XSERVER_INPUT
+    }
+
+    void consumeInputs(XServer xServer);
+    void dataReceived(PortIntent intent, @NonNull String message);
     String encode(@NonNull float[] axes, @NonNull boolean[] buttons, int clientIndex);
     String getFlags();
-    int getPortIn();
+    int getPortIn(PortIntent intent);
     int[] getPortsOut();
     float getValue(@NonNull AppInput index);
     void setValue(@NonNull AppInput index, float value);

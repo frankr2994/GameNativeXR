@@ -332,6 +332,7 @@ public class XrActivity extends MainActivity {
         xrController.updateHaptics(xrAPI);
 
         // Android UI input
+        lastActive = System.currentTimeMillis();
         if (!xrController.updateAndroidInput(buttons))
             return;
 
@@ -340,6 +341,7 @@ public class XrActivity extends MainActivity {
 
         // XServer input
         try (XLock lock = instance.getXServer().lock(XServer.Lockable.WINDOW_MANAGER, XServer.Lockable.INPUT_DEVICE)) {
+            xrAPI.consumeInputs(instance.getXServer());
             if (mouseEmulation) {
                 xrController.updateMouseAxes(axes, isImmersive && isHeadTrackingAllowed);
                 xrController.updateMouseSnapturn(buttons, isImmersive ? 125 : 25);
@@ -351,7 +353,6 @@ public class XrActivity extends MainActivity {
             }
             xrController.updateMouseState(buttons, fps);
             xrController.updateKeyboardButtons(buttons);
-            lastActive = System.currentTimeMillis();
         }
     }
 
