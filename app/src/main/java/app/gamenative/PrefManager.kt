@@ -677,6 +677,27 @@ object PrefManager {
             setPref(PORTRAIT_MODE, value)
         }
 
+    private val XR_USE_RESHADE = booleanPreferencesKey("xr_use_reshade")
+    var xrUseReshade: Boolean
+        get() = getPref(XR_USE_RESHADE, false)
+        set(value) {
+            setPref(XR_USE_RESHADE, value)
+        }
+
+    private val XR_FORCE_DCGI = booleanPreferencesKey("xr_force_dcgi")
+    var xrForceDCGI: Boolean
+        get() = getPref(XR_FORCE_DCGI, false)
+        set(value) {
+            setPref(XR_FORCE_DCGI, value)
+        }
+
+    private val XR_USE_TRACKIR = booleanPreferencesKey("xr_use_trackir")
+    var xrUseTrackIR: Boolean
+        get() = getPref(XR_USE_TRACKIR, false)
+        set(value) {
+            setPref(XR_USE_TRACKIR, value)
+        }
+
     private val BOX_86_VERSION = stringPreferencesKey("box86_version")
     var box86Version: String
         get() = getPref(BOX_86_VERSION, DefaultVersion.BOX86)

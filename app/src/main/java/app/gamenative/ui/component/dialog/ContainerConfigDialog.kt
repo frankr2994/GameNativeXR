@@ -1098,7 +1098,8 @@ fun ContainerConfigDialog(
                         stringResource(R.string.container_config_tab_win_components),
                         stringResource(R.string.container_config_tab_environment),
                         stringResource(R.string.container_config_tab_drives),
-                        stringResource(R.string.container_config_tab_advanced)
+                        stringResource(R.string.container_config_tab_advanced),
+                        stringResource(R.string.xr)
                     )
                     Column(
                         modifier = Modifier
@@ -1133,6 +1134,7 @@ fun ContainerConfigDialog(
                             if (selectedTab == 6) EnvironmentTabContent(state)
                             if (selectedTab == 7) DrivesTabContent(state)
                             if (selectedTab == 8) AdvancedTabContent(state)
+                            if (selectedTab == 9) XrTabContent(state)
                         }
                     }
                 }

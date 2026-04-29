@@ -807,9 +807,6 @@ internal fun AppScreenContent(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     var xr by rememberSaveable { mutableStateOf(XrActivity.isSupported()) }
-                    var reshade by rememberSaveable(displayInfo.appId) { mutableStateOf(false) }
-                    var forceDXGI by rememberSaveable(displayInfo.appId) { mutableStateOf(false) }
-                    var trackIR by rememberSaveable(displayInfo.appId) { mutableStateOf(false) }
 
                     // Integrated action bar - overlaid on hero
                     val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -854,9 +851,6 @@ internal fun AppScreenContent(
                                 text = text,
                                 onClick = {
                                     if (xr && isInstalled) {
-                                        XrActivity.setFlag(XrActivity.Flag.RESHADE, reshade)
-                                        XrActivity.setFlag(XrActivity.Flag.FORCE_DXGI, forceDXGI)
-                                        XrActivity.setFlag(XrActivity.Flag.TRACKIR, trackIR)
                                         XrActivity.openIntent(context, displayInfo.appId, false)
                                     } else {
                                         onDownloadInstallClick()
@@ -962,30 +956,6 @@ internal fun AppScreenContent(
                                 enabled = buttonEnabled
                             )
                             Text(text = stringResource(R.string.use_openxr))
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = reshade,
-                                onCheckedChange = { reshade = it },
-                                enabled = buttonEnabled
-                            )
-                            Text(text = stringResource(R.string.use_reshade))
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = forceDXGI,
-                                onCheckedChange = { forceDXGI = it },
-                                enabled = buttonEnabled && reshade
-                            )
-                            Text(text = stringResource(R.string.force_dxgi))
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = trackIR,
-                                onCheckedChange = { trackIR = it },
-                                enabled = buttonEnabled
-                            )
-                            Text(text = stringResource(R.string.use_trackir))
                         }
                     }
                 }

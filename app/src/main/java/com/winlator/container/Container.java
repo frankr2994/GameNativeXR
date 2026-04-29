@@ -155,6 +155,10 @@ public class Container {
 
     private boolean portraitMode = false;
 
+    private boolean xrUseReshade = false;
+    private boolean xrForceDCGI = false;
+    private boolean xrUseTrackIR = false;
+
     private String containerVariant = DEFAULT_VARIANT;
 
     public String getGraphicsDriverVersion() {
@@ -1034,6 +1038,30 @@ public class Container {
 
     public void setPortraitMode(boolean portraitMode) {
         this.portraitMode = portraitMode;
+    }
+
+    public boolean isXrUseReshade() {
+        return xrUseReshade;
+    }
+
+    public void setXrUseReshade(boolean xrUseReshade) {
+        this.xrUseReshade = xrUseReshade;
+    }
+
+    public boolean isXrForceDCGI() {
+        return xrForceDCGI;
+    }
+
+    public void setXrForceDCGI(boolean xrForceDCGI) {
+        this.xrForceDCGI = xrForceDCGI;
+    }
+
+    public boolean isXrUseTrackIR() {
+        return xrUseTrackIR;
+    }
+
+    public void setXrUseTrackIR(boolean xrUseTrackIR) {
+        this.xrUseTrackIR = xrUseTrackIR;
     }
 
     public String getContainerJson() {

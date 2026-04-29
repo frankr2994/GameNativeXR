@@ -2999,7 +2999,7 @@ private fun setupXEnvironment(
     // Setup TrackIR emulation
     try {
         ModdingUtils.unpackTrackIR(context)
-        if (XrActivity.getFlag(XrActivity.Flag.TRACKIR) && (xServer.winHandler != null)) {
+        if (container.isXrUseTrackIR() && (xServer.winHandler != null)) {
             xServer.winHandler.execWithDelay(ModdingUtils.getRuntimeForTrackIR(), 10)
         }
     } catch (e: Exception) {
@@ -3147,8 +3147,8 @@ private fun setupXEnvironment(
 
     try {
         val dst = ModdingUtils.getLocalDir(imageFs, container)
-        val useReshade = XrActivity.getFlag(XrActivity.Flag.RESHADE)
-        val forceDXGI = useReshade && XrActivity.getFlag(XrActivity.Flag.FORCE_DXGI)
+        val useReshade = container.isXrUseReshade()
+        val forceDXGI = useReshade && container.isXrForceDCGI()
         ModdingUtils.updateReshade(context, dst, useReshade, forceDXGI);
     } catch (e: Exception) {
         e.printStackTrace()

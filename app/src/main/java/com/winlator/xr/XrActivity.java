@@ -58,12 +58,8 @@ import java.util.Comparator;
 
 @AndroidEntryPoint
 public class XrActivity extends MainActivity {
-    public enum Flag { RESHADE, FORCE_DXGI, TRACKIR }
-
     private static final String EXTRA_CONTAINER_ID = "EXTRA_CONTAINER_ID";
     private static final String EXTRA_REBOOT_XR = "EXTRA_REBOOT_XR";
-    private static final String EXTRA_FLAGS = "EXTRA_FLAGS";
-    private static final boolean[] flags = new boolean[Flag.values().length];
 
     private static XrActivity instance;
     public Container container;
@@ -121,14 +117,6 @@ public class XrActivity extends MainActivity {
         shouldRebootInXR = getIntent().getBooleanExtra(EXTRA_REBOOT_XR, false);
         String containerId = getIntent().getStringExtra(EXTRA_CONTAINER_ID);
         container = new ContainerManager(this).getContainerById(containerId);
-
-        // unpack flags
-        String value = getIntent().getStringExtra(EXTRA_FLAGS);
-        if (value != null) {
-            for (int i = 0; i < flags.length; i++) {
-                flags[i] = value.charAt(i) == 'T';
-            }
-        }
 
         // run game
         new Thread(() -> {
@@ -245,14 +233,6 @@ public class XrActivity extends MainActivity {
         return getRuntime() != null;
     }
 
-    public static boolean getFlag(Flag flag) {
-        return flags[flag.ordinal()];
-    }
-
-    public static void setFlag(Flag flag, boolean value) {
-        flags[flag.ordinal()] = value;
-    }
-
     public Pair<Boolean, Integer> processFramesync(Drawable drawable) {
         // get sync pixel
         ByteBuffer buffer = drawable.getImage((short)0, (short)0, (short)1, (short)1);
@@ -289,18 +269,11 @@ public class XrActivity extends MainActivity {
     }
 
     public static void openIntent(Context context, String containerId, boolean xr) {
-        // Compress custom flags
-        StringBuilder value = new StringBuilder();
-        for (boolean flag : flags) {
-            value.append(flag ? "T" : "F");
-        }
-
         // Create the launch intent
         Class runtime = xr ? getRuntime() : XrActivity.class;
         Intent intent = new Intent(context, runtime);
         intent.putExtra(EXTRA_CONTAINER_ID, containerId);
         intent.putExtra(EXTRA_REBOOT_XR, !xr);
-        intent.putExtra(EXTRA_FLAGS, value.toString());
 
         // Set the activity flags
         final int mainDisplayId = Display.DEFAULT_DISPLAY;

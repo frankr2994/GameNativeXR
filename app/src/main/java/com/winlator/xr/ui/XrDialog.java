@@ -59,7 +59,7 @@ public class XrDialog extends ContentDialog {
         addMenuItem(activity, grid, R.drawable.icon_keyboard, R.string.keyboard, MenuItem.SHOW_KEYBOARD, 1.0f);
         addMenuItem(activity, grid, R.drawable.icon_task_manager, R.string.task_manager, MenuItem.TASK_MANAGER, 1.0f);
         addMenuItem(activity, grid, R.drawable.icon_magnifier, R.string.magnifier, MenuItem.WINDOW_SCALE, 1.0f);
-        if (XrActivity.getFlag(XrActivity.Flag.RESHADE)) {
+        if (XrActivity.getInstance().container.isXrUseReshade()) {
             //addMenuItem(activity, grid, R.drawable.icon_popup_menu_bring_to_front, R.string.reshade, MenuItem.RESHADE_MENU, 1.0f);
         }
         addMenuItem(activity, grid, R.drawable.icon_exit, R.string.exit_game, MenuItem.EXIT_GAME, 1.0f);

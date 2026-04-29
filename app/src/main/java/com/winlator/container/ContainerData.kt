@@ -94,6 +94,10 @@ data class ContainerData(
     val sharpnessEffect: String = "None",
     val sharpnessLevel: Int = 100,
     val sharpnessDenoise: Int = 100,
+
+    val xrUseReshade: Boolean = false,
+    val xrForceDCGI: Boolean = false,
+    val xrUseTrackIR: Boolean = false,
 ) {
     companion object {
         val Saver = mapSaver(
@@ -157,6 +161,9 @@ data class ContainerData(
                     "sharpnessEffect" to state.sharpnessEffect,
                     "sharpnessLevel" to state.sharpnessLevel,
                     "sharpnessDenoise" to state.sharpnessDenoise,
+                    "xrUseReshade" to state.xrUseReshade,
+                    "xrForceDCGI" to state.xrForceDCGI,
+                    "xrUseTrackIR" to state.xrUseTrackIR,
                 )
             },
             restore = { savedMap ->
@@ -219,6 +226,9 @@ data class ContainerData(
                     sharpnessEffect = (savedMap["sharpnessEffect"] as? String) ?: "None",
                     sharpnessLevel = (savedMap["sharpnessLevel"] as? Int) ?: 100,
                     sharpnessDenoise = (savedMap["sharpnessDenoise"] as? Int) ?: 100,
+                    xrUseReshade = (savedMap["xrUseReshade"] as? Boolean) ?: false,
+                    xrForceDCGI = (savedMap["xrForceDCGI"] as? Boolean) ?: false,
+                    xrUseTrackIR = (savedMap["xrUseTrackIR"] as? Boolean) ?: false,
                 )
             },
         )

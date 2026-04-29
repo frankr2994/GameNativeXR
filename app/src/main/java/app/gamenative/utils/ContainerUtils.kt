@@ -138,6 +138,9 @@ object ContainerUtils {
 			dinputMapperType = PrefManager.dinputMapperType.toByte(),
             disableMouseInput = PrefManager.disableMouseInput,
             portraitMode = PrefManager.portraitMode,
+            xrUseReshade = PrefManager.xrUseReshade,
+            xrForceDCGI = PrefManager.xrForceDCGI,
+            xrUseTrackIR = PrefManager.xrUseTrackIR,
             externalDisplayMode = PrefManager.externalDisplayInputMode,
             externalDisplaySwap = PrefManager.externalDisplaySwap,
             sharpnessEffect = PrefManager.sharpnessEffect,
@@ -201,6 +204,9 @@ object ContainerUtils {
         PrefManager.unpackFiles = containerData.unpackFiles
         PrefManager.suspendPolicy = containerData.suspendPolicy
         PrefManager.portraitMode = containerData.portraitMode
+        PrefManager.xrUseReshade = containerData.xrUseReshade
+        PrefManager.xrForceDCGI = containerData.xrForceDCGI
+        PrefManager.xrUseTrackIR = containerData.xrUseTrackIR
         PrefManager.sharpnessEffect = containerData.sharpnessEffect
         PrefManager.sharpnessLevel = containerData.sharpnessLevel
         PrefManager.sharpnessDenoise = containerData.sharpnessDenoise
@@ -298,6 +304,9 @@ object ContainerUtils {
             unpackFiles = container.isUnpackFiles(),
             suspendPolicy = container.suspendPolicy,
             portraitMode = container.isPortraitMode,
+            xrUseReshade = container.isXrUseReshade,
+            xrForceDCGI = container.isXrForceDCGI,
+            xrUseTrackIR = container.isXrUseTrackIR,
             enableXInput = enableX,
             enableDInput = enableD,
             dinputMapperType = mapperType,
@@ -477,6 +486,9 @@ object ContainerUtils {
         container.setUnpackFiles(containerData.unpackFiles)
         container.setSuspendPolicy(containerData.suspendPolicy)
         container.setPortraitMode(containerData.portraitMode)
+        container.setXrUseReshade(containerData.xrUseReshade)
+        container.setXrForceDCGI(containerData.xrForceDCGI)
+        container.setXrUseTrackIR(containerData.xrUseTrackIR)
         if (previousUnpackFiles != containerData.unpackFiles && containerData.unpackFiles) {
             container.setNeedsUnpacking(true)
         }
@@ -850,6 +862,9 @@ object ContainerUtils {
                 unpackFiles = PrefManager.unpackFiles,
                 suspendPolicy = PrefManager.suspendPolicy,
                 portraitMode = PrefManager.portraitMode,
+                xrUseReshade = PrefManager.xrUseReshade,
+                xrForceDCGI = PrefManager.xrForceDCGI,
+                xrUseTrackIR = PrefManager.xrUseTrackIR,
                 externalDisplayMode = PrefManager.externalDisplayInputMode,
                 externalDisplaySwap = PrefManager.externalDisplaySwap,
             )
