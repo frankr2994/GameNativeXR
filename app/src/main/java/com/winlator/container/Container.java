@@ -717,6 +717,11 @@ public class Container {
             data.put("suspendPolicy", suspendPolicy);
             data.put("portraitMode", portraitMode);
 
+            // Process XR config
+            data.put("xrUseReshade", xrUseReshade);
+            data.put("xrForceDCGI", xrForceDCGI);
+            data.put("xrUseTrackIR", xrUseTrackIR);
+
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
         }
@@ -914,6 +919,15 @@ public class Container {
                     break;
                 case "portraitMode":
                     this.portraitMode = data.getBoolean(key);
+                    break;
+                case "xrUseReshade":
+                    this.xrUseReshade = data.getBoolean(key);
+                    break;
+                case "xrForceDCGI":
+                    this.xrForceDCGI = data.getBoolean(key);
+                    break;
+                case "xrUseTrackIR":
+                    this.xrUseTrackIR = data.getBoolean(key);
                     break;
             }
         }
