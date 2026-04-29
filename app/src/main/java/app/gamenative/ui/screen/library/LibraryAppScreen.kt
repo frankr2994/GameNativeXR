@@ -851,7 +851,7 @@ internal fun AppScreenContent(
                                 text = text,
                                 onClick = {
                                     if (xr && isInstalled) {
-                                        XrActivity.openIntent(context, displayInfo.appId, false)
+                                        XrActivity.openIntent(context, displayInfo.appId, false, false)
                                     } else {
                                         onDownloadInstallClick()
                                     }

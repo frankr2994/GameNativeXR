@@ -44,6 +44,7 @@ import app.gamenative.utils.createPinnedShortcut
 import kotlinx.coroutines.CancellationException
 import com.winlator.container.ContainerData
 import com.winlator.core.GPUInformation
+import com.winlator.xr.XrActivity
 import java.io.File
 import kotlin.text.Charsets
 import kotlinx.coroutines.CoroutineScope
@@ -413,7 +414,11 @@ abstract class BaseAppScreen {
         return AppMenuOption(
             AppOptionMenuType.RunContainer,
             onClick = {
-                onRunContainerClick(context, libraryItem, onClickPlay)
+                if (XrActivity.isSupported()) {
+                    XrActivity.openIntent(context, libraryItem.appId, true, false)
+                } else {
+                    onRunContainerClick(context, libraryItem, onClickPlay)
+                }
             },
         )
     }

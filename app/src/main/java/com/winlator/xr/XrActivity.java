@@ -59,6 +59,7 @@ import java.util.Comparator;
 @AndroidEntryPoint
 public class XrActivity extends MainActivity {
     private static final String EXTRA_CONTAINER_ID = "EXTRA_CONTAINER_ID";
+    private static final String EXTRA_OPEN_CONTAINER = "EXTRA_OPEN_CONTAINER";
     private static final String EXTRA_REBOOT_XR = "EXTRA_REBOOT_XR";
 
     private static XrActivity instance;
@@ -76,6 +77,7 @@ public class XrActivity extends MainActivity {
     public static boolean mouseEmulation;
     public static boolean mouseLightgun;
     public static boolean wheelEmulation;
+    public static boolean shouldOpenContainer = false;
     public static boolean shouldRebootIn2D = true;
     public static boolean shouldRebootInXR = false;
 
@@ -113,6 +115,7 @@ public class XrActivity extends MainActivity {
         // set status
         instance = this;
         isEnabled = true;
+        shouldOpenContainer = getIntent().getBooleanExtra(EXTRA_OPEN_CONTAINER, false);
         shouldRebootIn2D = !getIntent().getBooleanExtra(EXTRA_REBOOT_XR, false);
         shouldRebootInXR = getIntent().getBooleanExtra(EXTRA_REBOOT_XR, false);
         String containerId = getIntent().getStringExtra(EXTRA_CONTAINER_ID);
@@ -124,7 +127,7 @@ public class XrActivity extends MainActivity {
                 Thread.sleep(1000);
             } catch (Exception e) {
             }
-            runOnUiThread(() -> PlayBridge.onClickPlay.invoke(containerId, true));
+            runOnUiThread(() -> PlayBridge.onClickPlay.invoke(containerId, shouldOpenContainer));
         }).start();
     }
 
@@ -268,11 +271,12 @@ public class XrActivity extends MainActivity {
         return output;
     }
 
-    public static void openIntent(Context context, String containerId, boolean xr) {
+    public static void openIntent(Context context, String containerId, boolean openContainer, boolean xr) {
         // Create the launch intent
         Class runtime = xr ? getRuntime() : XrActivity.class;
         Intent intent = new Intent(context, runtime);
         intent.putExtra(EXTRA_CONTAINER_ID, containerId);
+        intent.putExtra(EXTRA_OPEN_CONTAINER, openContainer);
         intent.putExtra(EXTRA_REBOOT_XR, !xr);
 
         // Set the activity flags
