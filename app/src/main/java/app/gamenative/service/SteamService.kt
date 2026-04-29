@@ -23,6 +23,7 @@ import app.gamenative.data.DownloadInfo
 import app.gamenative.data.Emoticon
 import app.gamenative.data.EncryptedAppTicket
 import app.gamenative.data.GameProcessInfo
+import app.gamenative.data.GameSource
 import app.gamenative.data.LaunchInfo
 import app.gamenative.data.OwnedGames
 import app.gamenative.data.PostSyncInfo
@@ -43,6 +44,7 @@ import app.gamenative.enums.LoginResult
 import app.gamenative.enums.Marker
 import app.gamenative.enums.OS
 import app.gamenative.enums.OSArch
+import app.gamenative.enums.PathType
 import app.gamenative.enums.SaveLocation
 import app.gamenative.enums.SyncResult
 import app.gamenative.events.AndroidEvent
@@ -1938,23 +1940,41 @@ class SteamService : Service(), IChallengeUrlChanged {
                         // Complete app download
                         if (mainAppDepots.isNotEmpty()) {
                             val mainAppDepotIds = mainAppDepots.keys.sorted()
-                            completeAppDownload(di, appId, mainAppDepotIds, mainAppDlcIds, appDirPath, branch)
+                            completeAppDownload(
+                                downloadInfo = di,
+                                downloadingAppId = appId,
+                                entitledDepotIds = mainAppDepotIds,
+                                selectedDlcAppIds = mainAppDlcIds,
+                                appDirPath = appDirPath,
+                                branch = branch,
+                                parentScope = this,
+                            )
                         }
 
                         // Complete dlc app download
                         calculatedDlcAppIds.forEach { dlcAppId ->
                             val dlcDepots = selectedDepots.filter { it.value.dlcAppId == dlcAppId }
                             val dlcDepotIds = dlcDepots.keys.sorted()
-                            completeAppDownload(di, dlcAppId, dlcDepotIds, emptyList(), appDirPath, branch)
+                            completeAppDownload(
+                                downloadInfo = di,
+                                downloadingAppId = dlcAppId,
+                                entitledDepotIds = dlcDepotIds,
+                                selectedDlcAppIds = emptyList(),
+                                appDirPath = appDirPath,
+                                branch = branch,
+                                parentScope = this,
+                            )
                         }
 
-                        // Remove the job here
+                        // Remove the job here — Play button becomes visible after this
                         removeDownloadJob(appId)
+                        PluviaApp.events.emit(AndroidEvent.LibraryInstallStatusChanged(appId))
 
                         // Remove the downloading app info
-                        runBlocking {
-                            instance?.downloadingAppInfoDao?.deleteApp(appId)
-                        }
+                        instance?.downloadingAppInfoDao?.deleteApp(appId)
+                    } catch (e: CancellationException) {
+                        Timber.d(e, "Download canceled for app $appId")
+                        throw e
                     } catch (e: Exception) {
                         Timber.e(e, "Download failed for app $appId")
                         di.persistProgressSnapshot()
@@ -1980,6 +2000,8 @@ class SteamService : Service(), IChallengeUrlChanged {
             return info
         }
 
+        // parentScope is intentionally the download job's own CoroutineScope: cancelling the
+        // download (e.g. user taps Cancel) also cancels the post-install cloud save sync.
         private suspend fun completeAppDownload(
             downloadInfo: DownloadInfo,
             downloadingAppId: Int,
@@ -1987,6 +2009,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             selectedDlcAppIds: List<Int>,
             appDirPath: String,
             branch: String = "public",
+            parentScope: CoroutineScope,
         ) {
             Timber.i("Item $downloadingAppId download completed, saving database")
 
@@ -2033,10 +2056,46 @@ class SteamService : Service(), IChallengeUrlChanged {
                 // clean up DB record BEFORE notifying UI to avoid stale "Resume" button
                 instance?.downloadingAppInfoDao?.deleteApp(downloadInfo.gameId)
 
-                PluviaApp.events.emit(AndroidEvent.LibraryInstallStatusChanged(downloadInfo.gameId))
-
-                // Clear persisted bytes file on successful completion
+                // Clear persisted bytes now — depot install is committed. Post-install sync is
+                // best-effort and may be cancelled, so this must not be deferred past the sync block.
                 downloadInfo.clearPersistedBytesDownloaded(appDirPath)
+
+                // Download cloud saves so they're ready before first launch.
+                // Uses the container's own path directly — no activation of the shared xuser
+                // symlink needed, so this is safe to run concurrently with any other game session.
+                instance?.let { svc ->
+                    val appId = downloadInfo.gameId
+                    val steamId = userSteamId
+                    val containerId = "${GameSource.STEAM.name}_$appId"
+                    if (steamId != null && !ContainerUtils.isLocalSavesOnly(svc.applicationContext, containerId)) {
+                        downloadInfo.setPostInstallSyncing(true)
+                        downloadInfo.updateStatusMessage("Syncing saves...")
+                        PluviaApp.events.emit(AndroidEvent.PostInstallSyncStatusChanged(appId, true))
+                        try {
+                            val container = ContainerUtils.getOrCreateContainer(svc.applicationContext, containerId)
+                            val prefixToPath: (String) -> String = { prefix ->
+                                PathType.from(prefix).toAbsPath(container, appId, steamId.accountID)
+                            }
+                            val postSyncInfo = forceSyncUserFiles(
+                                appId = appId,
+                                prefixToPath = prefixToPath,
+                                preferredSave = SaveLocation.Remote,
+                                parentScope = parentScope,
+                            ).await()
+                            if (postSyncInfo.syncResult !in setOf(SyncResult.Success, SyncResult.UpToDate)) {
+                                Timber.w("[PostInstallSync] Cloud save sync finished with ${postSyncInfo.syncResult} for app $appId")
+                            }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Timber.e(e, "[PostInstallSync] Cloud save sync failed for app $appId")
+                        } finally {
+                            downloadInfo.setPostInstallSyncing(false)
+                            downloadInfo.updateStatusMessage(null)
+                            PluviaApp.events.emit(AndroidEvent.PostInstallSyncStatusChanged(appId, false))
+                        }
+                    }
+                }
             }
         }
 
@@ -2214,10 +2273,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                 return@async PostSyncInfo(SyncResult.InProgress)
             }
 
-            // Migrate GSE Saves to Steam userdata
-            SteamUtils.migrateGSESavesToSteamUserdata(instance?.applicationContext!!, appId)
-
             try {
+                val context = instance?.applicationContext ?: return@async PostSyncInfo(SyncResult.UnknownFail)
+                // Migrate GSE Saves to Steam userdata
+                SteamUtils.migrateGSESavesToSteamUserdata(context, appId)
+
                 var syncResult = PostSyncInfo(SyncResult.UnknownFail)
 
                 val maxAttempts = 3
@@ -2305,10 +2365,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                 return@async PostSyncInfo(SyncResult.InProgress)
             }
 
-            // Migrate GSE Saves to Steam userdata
-            SteamUtils.migrateGSESavesToSteamUserdata(instance?.applicationContext!!, appId)
-
             try {
+                val context = instance?.applicationContext ?: return@async PostSyncInfo(SyncResult.UnknownFail)
+                // Migrate GSE Saves to Steam userdata
+                SteamUtils.migrateGSESavesToSteamUserdata(context, appId)
+
                 var syncResult = PostSyncInfo(SyncResult.UnknownFail)
 
                 val maxAttempts = 3
