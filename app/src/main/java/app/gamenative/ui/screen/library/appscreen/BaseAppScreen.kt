@@ -414,7 +414,7 @@ abstract class BaseAppScreen {
         return AppMenuOption(
             AppOptionMenuType.RunContainer,
             onClick = {
-                if (XrActivity.isSupported()) {
+                if (XrActivity.shouldRunInXR && XrActivity.isSupported()) {
                     XrActivity.openIntent(context, libraryItem.appId, true, false)
                 } else {
                     onRunContainerClick(context, libraryItem, onClickPlay)

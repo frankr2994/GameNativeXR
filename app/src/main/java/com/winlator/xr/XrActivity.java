@@ -66,6 +66,12 @@ public class XrActivity extends MainActivity {
     public Container container;
     private XServer xserver;
 
+    // Booting flags
+    public static boolean shouldOpenContainer = false;
+    public static boolean shouldRebootIn2D = true;
+    public static boolean shouldRebootInXR = false;
+    public static boolean shouldRunInXR = false;
+
     // Configuration flags
     private static boolean isEnabled = false;
     public static boolean isImmersive = false;
@@ -77,9 +83,6 @@ public class XrActivity extends MainActivity {
     public static boolean mouseEmulation;
     public static boolean mouseLightgun;
     public static boolean wheelEmulation;
-    public static boolean shouldOpenContainer = false;
-    public static boolean shouldRebootIn2D = true;
-    public static boolean shouldRebootInXR = false;
 
     // Rendering status
     private static long lastActive = 0;

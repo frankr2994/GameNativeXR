@@ -807,6 +807,7 @@ internal fun AppScreenContent(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     var xr by rememberSaveable { mutableStateOf(XrActivity.isSupported()) }
+                    XrActivity.shouldRunInXR = xr;
 
                     // Integrated action bar - overlaid on hero
                     val isPortrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
@@ -851,7 +852,8 @@ internal fun AppScreenContent(
                                 text = text,
                                 onClick = {
                                     if (xr && isInstalled) {
-                                        XrActivity.openIntent(context, displayInfo.appId, false, false)
+                                        val customGame = displayInfo.appId.startsWith("CUSTOM")
+                                        XrActivity.openIntent(context, displayInfo.appId, !customGame, false)
                                     } else {
                                         onDownloadInstallClick()
                                     }
@@ -952,7 +954,7 @@ internal fun AppScreenContent(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = xr,
-                                onCheckedChange = { xr = it },
+                                onCheckedChange = { xr = it; XrActivity.shouldRunInXR = it },
                                 enabled = buttonEnabled
                             )
                             Text(text = stringResource(R.string.use_openxr))
