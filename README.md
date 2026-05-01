@@ -14,7 +14,7 @@ This approach allows experimental and early-stage XR features to reach enthusias
 
 At the same time, maintaining compatibility and long-term sustainability remains an important priority. The intention is not to permanently fragment the project, but rather to mature these XR enhancements to a level where they can be cleanly integrated upstream, benefiting the broader community while helping push the ecosystem toward better native XR support overall.
 
-<img width="1057" height="595" alt="GameNativeXR-history" src="https://github.com/user-attachments/assets/742787d1-992c-4067-8b70-da5236c47a19" />
+<img width="1057" height="595" alt="GameNativeXR-history" src="https://github.com/user-attachments/assets/c8ab6d6d-29d1-4a4a-ac3b-edcb6b5c492b" />
 
 ---
 
