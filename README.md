@@ -1,3 +1,25 @@
+<img width="2400" height="1368" alt="GameNativeXR" src="https://github.com/user-attachments/assets/b1bf0cdd-5d76-4281-b22a-d2bf806bbdba" />
+
+### Introduction
+
+GameNativeXR is an unofficial client for Steam, GOG, Epic Games, and Amazon Games designed specifically for XR headsets. It brings traditional PC gaming into immersive setup, allowing players to experience their game libraries in entirely new ways. Beyond basic launcher functionality, GameNativeXR enhances compatibility and immersion through advanced features such as stereoscopic 3D rendering, native XR controller support and for some games VR integration.
+
+The project aims to bridge the gap between conventional desktop gaming platforms and modern XR hardware, making it possible to enjoy both flat-screen and immersive experiences inside virtual reality. By combining game library management with XR-focused enhancements, GameNativeXR creates a more seamless and engaging way to access, launch, and play games directly from VR and mixed reality headsets.
+
+### Goal
+
+The goal of this fork is to refine, expand, and polish the overall XR experience while working toward eventually contributing these improvements back upstream to the main project. By developing features independently in a dedicated fork, new XR functionality can evolve more rapidly without being constrained by the slower pace often required for stable upstream integration.
+
+This approach allows experimental and early-stage XR features to reach enthusiasts, developers, and testers much sooner, helping to gather real-world feedback and iterate quickly on usability, performance, and compatibility. The fork serves as a proving ground for immersive technologies such as enhanced VR integration, advanced controller interaction, stereoscopic rendering improvements, spatial user interfaces, and other XR-focused capabilities.
+
+At the same time, maintaining compatibility and long-term sustainability remains an important priority. The intention is not to permanently fragment the project, but rather to mature these XR enhancements to a level where they can be cleanly integrated upstream, benefiting the broader community while helping push the ecosystem toward better native XR support overall.
+
+<img width="1057" height="595" alt="GameNativeXR-history" src="https://github.com/user-attachments/assets/742787d1-992c-4067-8b70-da5236c47a19" />
+
+---
+
+# Original README
+
 [![Star History Rank](https://api.star-history.com/badge?repo=utkarshdalal/GameNative&theme=dark)](https://www.star-history.com/utkarshdalal/gamenative)
 
 # GameNative
