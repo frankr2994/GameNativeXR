@@ -979,7 +979,7 @@ object PrefManager {
     // Whether to show the on-screen gamepad hints/action bar in the UI
     private val SHOW_GAMEPAD_HINTS = booleanPreferencesKey("show_gamepad_hints")
     var showGamepadHints: Boolean
-        get() = getPref(SHOW_GAMEPAD_HINTS, true)
+        get() = getPref(SHOW_GAMEPAD_HINTS, false)
         set(value) {
             setPref(SHOW_GAMEPAD_HINTS, value)
         }
@@ -1080,7 +1080,7 @@ object PrefManager {
     // Show game recommendations in library
     private val SHOW_RECOMMENDATIONS = booleanPreferencesKey("show_recommendations")
     var showRecommendations: Boolean
-        get() = getPref(SHOW_RECOMMENDATIONS, true)
+        get() = getPref(SHOW_RECOMMENDATIONS, false)
         set(value) {
             setPref(SHOW_RECOMMENDATIONS, value)
         }
