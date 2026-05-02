@@ -82,6 +82,9 @@ public class XrDialog extends ContentDialog {
 
         CheckBox cbPlayerXRMouse = findViewById(R.id.CBPlayerXRMouse);
         cbPlayerXRMouse.setChecked(preferences.getBoolean("use_xr_mouse", true));
+        CheckBox cbPlayerXRMouseLeftHanded = findViewById(R.id.CBPlayerXRMouseLeftHanded);
+        cbPlayerXRMouseLeftHanded.setEnabled(cbPlayerXRMouse.isChecked());
+        cbPlayerXRMouseLeftHanded.setChecked(preferences.getBoolean("use_xr_leftHanded", false));
         CheckBox cbPlayerXRMouseLightgun = findViewById(R.id.CBPlayerXRMouseLightgun);
         cbPlayerXRMouseLightgun.setEnabled(cbPlayerXRMouse.isChecked());
         cbPlayerXRMouseLightgun.setChecked(preferences.getBoolean("use_xr_lightgun", false));
@@ -94,13 +97,16 @@ public class XrDialog extends ContentDialog {
             e.putBoolean("use_cs", cbCurvedScreen.isChecked());
             e.putBoolean("use_pt", cbPassthrough.isChecked());
             e.putBoolean("use_xr_mouse", cbPlayerXRMouse.isChecked());
+            e.putBoolean("use_xr_leftHanded", cbPlayerXRMouseLeftHanded.isChecked());
             e.putBoolean("use_xr_lightgun", cbPlayerXRMouseLightgun.isChecked());
             e.putBoolean("use_xr_wheel", cbPlayerXRWheelEmulation.isChecked());
             e.commit();
 
             XrActivity.mouseEmulation = cbPlayerXRMouse.isChecked();
+            XrActivity.mouseLeftHanded = cbPlayerXRMouseLeftHanded.isChecked();
             XrActivity.mouseLightgun = cbPlayerXRMouseLightgun.isChecked();
             XrActivity.wheelEmulation = cbPlayerXRWheelEmulation.isChecked();
+            cbPlayerXRMouseLeftHanded.setEnabled(cbPlayerXRMouse.isChecked());
             cbPlayerXRMouseLightgun.setEnabled(cbPlayerXRMouse.isChecked());
             cbPlayerXRWheelEmulation.setEnabled(cbPlayerXRMouse.isChecked());
 
@@ -120,6 +126,7 @@ public class XrDialog extends ContentDialog {
         cbCurvedScreen.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
         cbPassthrough.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
         cbPlayerXRMouse.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
+        cbPlayerXRMouseLeftHanded.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
         cbPlayerXRMouseLightgun.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
         cbPlayerXRWheelEmulation.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
 

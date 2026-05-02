@@ -157,6 +157,7 @@
     <string name="unity_mono_bleeding_edge">Unity Mono Bleeding Edge</string>
     <string name="title_ubuntufs">Ubuntu FS</string>
     <string name="light_gun_mouse">Use light gun / laser pointer mouse mapping</string>
+    <string name="left_handed_mouse">Use left handed mouse mapping</string>
     <string name="wheel_emulation">Use controllers as a wheel (experimental)</string>
     <string name="controller_as_mouse">Use XR controller as mouse</string>
     <string name="use_pt">Use passthrough</string>
