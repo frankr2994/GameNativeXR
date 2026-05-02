@@ -239,7 +239,7 @@ public class XrRenderer extends GLRenderer {
     }
 
     private void renderFPSCounter() {
-        if (renderableWindows.isEmpty()) {
+        if (renderableWindows.isEmpty() || XrActivity.isSBS) {
             return;
         }
 
