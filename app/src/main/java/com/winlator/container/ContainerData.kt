@@ -98,6 +98,10 @@ data class ContainerData(
     val xrUseReshade: Boolean = false,
     val xrForceDCGI: Boolean = false,
     val xrUseTrackIR: Boolean = false,
+
+    // LSFG Vulkan frame generation
+    /** Whether LSFG frame generation is enabled for this container */
+    val lsfgEnabled: Boolean = false,
 ) {
     companion object {
         val Saver = mapSaver(
@@ -164,6 +168,7 @@ data class ContainerData(
                     "xrUseReshade" to state.xrUseReshade,
                     "xrForceDCGI" to state.xrForceDCGI,
                     "xrUseTrackIR" to state.xrUseTrackIR,
+                    "lsfgEnabled" to state.lsfgEnabled,
                 )
             },
             restore = { savedMap ->
@@ -229,6 +234,7 @@ data class ContainerData(
                     xrUseReshade = (savedMap["xrUseReshade"] as? Boolean) ?: false,
                     xrForceDCGI = (savedMap["xrForceDCGI"] as? Boolean) ?: false,
                     xrUseTrackIR = (savedMap["xrUseTrackIR"] as? Boolean) ?: false,
+                    lsfgEnabled = (savedMap["lsfgEnabled"] as? Boolean) ?: false,
                 )
             },
         )
