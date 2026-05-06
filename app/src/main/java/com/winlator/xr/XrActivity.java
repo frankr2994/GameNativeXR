@@ -324,7 +324,7 @@ public class XrActivity extends MainActivity {
             xrAPI.consumeInputs(instance.getXServer());
             if (mouseEmulation) {
                 xrController.updateMouseAxes(axes, isImmersive && isHeadTrackingAllowed);
-                xrController.updateMouseSnapturn(buttons, isImmersive ? 125 : 25);
+                xrController.updateMouseSnapturn(buttons, isImmersive ? 250 : 50);
                 if (mouseLightgun && !isImmersive && !isVR)
                     xrController.updateMouseLightgun(axes, lastDistance);
             }
