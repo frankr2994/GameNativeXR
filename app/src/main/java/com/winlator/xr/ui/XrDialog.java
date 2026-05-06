@@ -88,9 +88,6 @@ public class XrDialog extends ContentDialog {
         CheckBox cbPlayerXRMouseLightgun = findViewById(R.id.CBPlayerXRMouseLightgun);
         cbPlayerXRMouseLightgun.setEnabled(cbPlayerXRMouse.isChecked());
         cbPlayerXRMouseLightgun.setChecked(preferences.getBoolean("use_xr_lightgun", false));
-        CheckBox cbPlayerXRWheelEmulation = findViewById(R.id.CBPlayerXRWheelEmulation);
-        cbPlayerXRWheelEmulation.setEnabled(cbPlayerXRMouse.isChecked());
-        cbPlayerXRWheelEmulation.setChecked(preferences.getBoolean("use_xr_wheel", false));
 
         Runnable applyAll = () -> {
             SharedPreferences.Editor e = preferences.edit();
@@ -99,16 +96,13 @@ public class XrDialog extends ContentDialog {
             e.putBoolean("use_xr_mouse", cbPlayerXRMouse.isChecked());
             e.putBoolean("use_xr_leftHanded", cbPlayerXRMouseLeftHanded.isChecked());
             e.putBoolean("use_xr_lightgun", cbPlayerXRMouseLightgun.isChecked());
-            e.putBoolean("use_xr_wheel", cbPlayerXRWheelEmulation.isChecked());
             e.commit();
 
             XrActivity.mouseEmulation = cbPlayerXRMouse.isChecked();
             XrActivity.mouseLeftHanded = cbPlayerXRMouseLeftHanded.isChecked();
             XrActivity.mouseLightgun = cbPlayerXRMouseLightgun.isChecked();
-            XrActivity.wheelEmulation = cbPlayerXRWheelEmulation.isChecked();
             cbPlayerXRMouseLeftHanded.setEnabled(cbPlayerXRMouse.isChecked());
             cbPlayerXRMouseLightgun.setEnabled(cbPlayerXRMouse.isChecked());
-            cbPlayerXRWheelEmulation.setEnabled(cbPlayerXRMouse.isChecked());
 
             XrActivity.isSBS = cbSBS.isChecked();
             XrActivity.isImmersive = cbImmersiveMode.isChecked();
@@ -128,7 +122,6 @@ public class XrDialog extends ContentDialog {
         cbPlayerXRMouse.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
         cbPlayerXRMouseLeftHanded.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
         cbPlayerXRMouseLightgun.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
-        cbPlayerXRWheelEmulation.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
 
         findViewById(R.id.BTCancel).setVisibility(View.GONE);
         findViewById(R.id.BTConfirm).setVisibility(View.VISIBLE);

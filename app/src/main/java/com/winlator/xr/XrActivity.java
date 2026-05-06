@@ -83,7 +83,6 @@ public class XrActivity extends MainActivity {
     public static boolean mouseEmulation;
     public static boolean mouseLeftHanded;
     public static boolean mouseLightgun;
-    public static boolean wheelEmulation;
 
     // Rendering status
     private static long lastActive = 0;
@@ -114,7 +113,6 @@ public class XrActivity extends MainActivity {
         mouseEmulation = prefs.getBoolean("use_xr_mouse", true);
         mouseLeftHanded = prefs.getBoolean("use_xr_leftHanded", false);
         mouseLightgun = prefs.getBoolean("use_xr_lightgun", false);
-        wheelEmulation = prefs.getBoolean("use_xr_wheel", false);
         sendManufacturer(Build.MANUFACTURER.toUpperCase());
 
         // set status
@@ -329,9 +327,6 @@ public class XrActivity extends MainActivity {
                 xrController.updateMouseSnapturn(buttons, isImmersive ? 125 : 25);
                 if (mouseLightgun && !isImmersive && !isVR)
                     xrController.updateMouseLightgun(axes, lastDistance);
-            }
-            if (wheelEmulation && !isImmersive && !isVR) {
-                xrController.updateWheelEmulation(axes, buttons);
             }
             xrController.updateMouseState(buttons, fps);
             xrController.updateKeyboardButtons(buttons);

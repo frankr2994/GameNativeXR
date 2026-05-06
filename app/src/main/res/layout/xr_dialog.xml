@@ -83,11 +83,4 @@
         android:layout_height="wrap_content"
         android:background="@drawable/xr_selector"
         android:text="@string/light_gun_mouse" />
-
-    <CheckBox
-        android:id="@+id/CBPlayerXRWheelEmulation"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/xr_selector"
-        android:text="@string/wheel_emulation" />
 </LinearLayout>
