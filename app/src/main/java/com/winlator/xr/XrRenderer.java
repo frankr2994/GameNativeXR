@@ -81,7 +81,11 @@ public class XrRenderer extends GLRenderer {
             width = 1280;
         }
 
-        XrActivity.getInstance().init(width, height, 72, 4, 4);
+        XrActivity activity = XrActivity.getInstance();
+        int cpuLevel = activity.container.getCpuLevel();
+        int gpuLevel = activity.container.getGpuLevel();
+        int refresh = activity.container.getRefreshRate();
+        activity.init(width, height, refresh, cpuLevel, gpuLevel);
         height = width; ////Use square resolution
         GLES20.glViewport(0, 0, width, height);
         magnifierEnabled = false;

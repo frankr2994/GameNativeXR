@@ -677,6 +677,27 @@ object PrefManager {
             setPref(PORTRAIT_MODE, value)
         }
 
+    private val XR_CPU_LEVEL = intPreferencesKey("xr_cpu_level")
+    var xrCPULevel: Int
+        get() = getPref(XR_CPU_LEVEL, 75)
+        set(value) {
+            setPref(XR_CPU_LEVEL, value)
+        }
+
+    private val XR_GPU_LEVEL = intPreferencesKey("xr_gpu_level")
+    var xrGPULevel: Int
+        get() = getPref(XR_GPU_LEVEL, 75)
+        set(value) {
+            setPref(XR_GPU_LEVEL, value)
+        }
+
+    private val XR_REFRESH_RATE = intPreferencesKey("xr_refresh_rate")
+    var xrRefreshRate: Int
+        get() = getPref(XR_REFRESH_RATE, 72)
+        set(value) {
+            setPref(XR_REFRESH_RATE, value)
+        }
+
     private val XR_USE_RESHADE = booleanPreferencesKey("xr_use_reshade")
     var xrUseReshade: Boolean
         get() = getPref(XR_USE_RESHADE, false)

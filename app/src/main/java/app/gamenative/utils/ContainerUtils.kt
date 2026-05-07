@@ -139,6 +139,9 @@ object ContainerUtils {
 			dinputMapperType = PrefManager.dinputMapperType.toByte(),
             disableMouseInput = PrefManager.disableMouseInput,
             portraitMode = PrefManager.portraitMode,
+            xrCPULevel = PrefManager.xrCPULevel,
+            xrGPULevel = PrefManager.xrGPULevel,
+            xrRefreshRate = PrefManager.xrRefreshRate,
             xrUseReshade = PrefManager.xrUseReshade,
             xrForceDCGI = PrefManager.xrForceDCGI,
             xrUseTrackIR = PrefManager.xrUseTrackIR,
@@ -205,6 +208,9 @@ object ContainerUtils {
         PrefManager.unpackFiles = containerData.unpackFiles
         PrefManager.suspendPolicy = containerData.suspendPolicy
         PrefManager.portraitMode = containerData.portraitMode
+        PrefManager.xrCPULevel = containerData.xrCPULevel
+        PrefManager.xrGPULevel = containerData.xrGPULevel
+        PrefManager.xrRefreshRate = containerData.xrRefreshRate
         PrefManager.xrUseReshade = containerData.xrUseReshade
         PrefManager.xrForceDCGI = containerData.xrForceDCGI
         PrefManager.xrUseTrackIR = containerData.xrUseTrackIR
@@ -305,6 +311,9 @@ object ContainerUtils {
             unpackFiles = container.isUnpackFiles(),
             suspendPolicy = container.suspendPolicy,
             portraitMode = container.isPortraitMode,
+            xrCPULevel = PrefManager.xrCPULevel,
+            xrGPULevel = PrefManager.xrGPULevel,
+            xrRefreshRate = PrefManager.xrRefreshRate,
             xrUseReshade = container.isXrUseReshade,
             xrForceDCGI = container.isXrForceDCGI,
             xrUseTrackIR = container.isXrUseTrackIR,
@@ -489,6 +498,9 @@ object ContainerUtils {
         container.setUnpackFiles(containerData.unpackFiles)
         container.setSuspendPolicy(containerData.suspendPolicy)
         container.setPortraitMode(containerData.portraitMode)
+        container.setCpuLevel(containerData.xrCPULevel)
+        container.setGpuLevel(containerData.xrGPULevel)
+        container.setRefreshRate(containerData.xrRefreshRate)
         container.setXrUseReshade(containerData.xrUseReshade)
         container.setXrForceDCGI(containerData.xrForceDCGI)
         container.setXrUseTrackIR(containerData.xrUseTrackIR)
@@ -867,6 +879,9 @@ object ContainerUtils {
                 unpackFiles = PrefManager.unpackFiles,
                 suspendPolicy = PrefManager.suspendPolicy,
                 portraitMode = PrefManager.portraitMode,
+                xrCPULevel = PrefManager.xrCPULevel,
+                xrGPULevel = PrefManager.xrGPULevel,
+                xrRefreshRate = PrefManager.xrRefreshRate,
                 xrUseReshade = PrefManager.xrUseReshade,
                 xrForceDCGI = PrefManager.xrForceDCGI,
                 xrUseTrackIR = PrefManager.xrUseTrackIR,
