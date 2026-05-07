@@ -172,6 +172,9 @@
     <string name="use_trackir_desc">Camera tracking for racing/simulator games</string>
     <string name="reshade">Reshade</string>
     <string name="xr">XR</string>
+    <string name="cpu_level">CPU level</string>
+    <string name="gpu_level">GPU level</string>
+    <string name="refresh_rate">Refresh rate</string>
     <string name="to_apply_close">To apply the change, close this dialog</string>
 
     <!-- Winlator: Win Components -->

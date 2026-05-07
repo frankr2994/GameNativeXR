@@ -311,9 +311,9 @@ object ContainerUtils {
             unpackFiles = container.isUnpackFiles(),
             suspendPolicy = container.suspendPolicy,
             portraitMode = container.isPortraitMode,
-            xrCPULevel = PrefManager.xrCPULevel,
-            xrGPULevel = PrefManager.xrGPULevel,
-            xrRefreshRate = PrefManager.xrRefreshRate,
+            xrCPULevel = container.getExtra("xrCPULevel", "75").toIntOrNull() ?: 75,
+            xrGPULevel = container.getExtra("xrGPULevel", "75").toIntOrNull() ?: 75,
+            xrRefreshRate = container.getExtra("xrRefreshRate", "72").toIntOrNull() ?: 72,
             xrUseReshade = container.isXrUseReshade,
             xrForceDCGI = container.isXrForceDCGI,
             xrUseTrackIR = container.isXrUseTrackIR,
@@ -507,6 +507,9 @@ object ContainerUtils {
         if (previousUnpackFiles != containerData.unpackFiles && containerData.unpackFiles) {
             container.setNeedsUnpacking(true)
         }
+        container.putExtra("xrCPULevel", containerData.xrCPULevel.toString())
+        container.putExtra("xrGPULevel", containerData.xrGPULevel.toString())
+        container.putExtra("xrRefreshRate", containerData.xrRefreshRate.toString())
         container.putExtra("sharpnessEffect", containerData.sharpnessEffect)
         container.putExtra("sharpnessLevel", containerData.sharpnessLevel.toString())
         container.putExtra("sharpnessDenoise", containerData.sharpnessDenoise.toString())

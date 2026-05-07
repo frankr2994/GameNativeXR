@@ -587,6 +587,15 @@ fun ContainerConfigDialog(
         var sharpnessLevel by sharpnessLevelRef
         val sharpnessDenoiseRef = rememberSaveable { mutableIntStateOf(config.sharpnessDenoise.coerceIn(0, 100)) }
         var sharpnessDenoise by sharpnessDenoiseRef
+
+        val xrCPULevelRef = rememberSaveable { mutableIntStateOf(config.xrCPULevel.coerceIn(0, 75)) }
+        var xrCPULevel by xrCPULevelRef
+        val xrGPULevelRef = rememberSaveable { mutableIntStateOf(config.xrGPULevel.coerceIn(0, 75)) }
+        var xrGPULevel by xrGPULevelRef
+        val xrRefreshRatelRef = rememberSaveable { mutableIntStateOf(config.xrRefreshRate.coerceIn(60, 90)) }
+        var xrRefreshRate by xrRefreshRatelRef
+
+
         val adrenotoolsTurnipCheckedRef = rememberSaveable {
             val cfg = KeyValueSet(config.graphicsDriverConfig)
             mutableStateOf(cfg.get("adrenotoolsTurnip", "1") != "0")
@@ -626,6 +635,12 @@ fun ContainerConfigDialog(
             sharpnessEffectIndex = sharpnessEffects.indexOfFirst { it.equals(config.sharpnessEffect, true) }.coerceAtLeast(0)
             sharpnessLevel = config.sharpnessLevel.coerceIn(0, 100)
             sharpnessDenoise = config.sharpnessDenoise.coerceIn(0, 100)
+        }
+
+        LaunchedEffect(config.xrCPULevel, config.xrGPULevel, config.xrRefreshRate) {
+            xrCPULevel = config.xrCPULevel.coerceIn(0, 75)
+            xrGPULevel = config.xrGPULevel.coerceIn(0, 75)
+            xrRefreshRate = config.xrRefreshRate.coerceIn(60, 90)
         }
 
         LaunchedEffect(versionsLoaded, wrapperOptions, config.graphicsDriverConfig) {
@@ -965,6 +980,9 @@ fun ContainerConfigDialog(
             sharpnessEffectIndex = sharpnessEffectIndexRef,
             sharpnessLevel = sharpnessLevelRef,
             sharpnessDenoise = sharpnessDenoiseRef,
+            xrCPULevel = xrCPULevelRef,
+            xrGPULevel = xrGPULevelRef,
+            xrRefreshRate = xrRefreshRatelRef,
             adrenotoolsTurnipChecked = adrenotoolsTurnipCheckedRef,
             emulator64Index = emulator64IndexRef,
             emulator32Index = emulator32IndexRef,
