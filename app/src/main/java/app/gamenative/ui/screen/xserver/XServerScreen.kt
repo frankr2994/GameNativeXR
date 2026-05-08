@@ -571,7 +571,10 @@ fun XServerScreen(
     LaunchedEffect(xServerView) {
         val detectedMax = detectMaxRefreshRateHz(context, xServerView)
         detectedMaxRefreshRateHz = detectedMax
-        val clampedTarget = fpsLimiterTarget.coerceAtMost(detectedMax).coerceAtLeast(5)
+        var clampedTarget = fpsLimiterTarget.coerceAtMost(detectedMax).coerceAtLeast(5)
+        if (XrActivity.isEnabled()) {
+            clampedTarget = XrActivity.getInstance().container.getXrRefreshRate();
+        }
         if (clampedTarget != fpsLimiterTarget) {
             fpsLimiterTarget = clampedTarget
         }
