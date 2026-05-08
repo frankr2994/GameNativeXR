@@ -22,11 +22,6 @@ import java.util.Iterator;
 import java.util.Locale;
 
 public class Container {
-    public enum XrControllerMapping {
-        BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_GRIP, BUTTON_TRIGGER,
-        THUMBSTICK_UP, THUMBSTICK_DOWN, THUMBSTICK_LEFT, THUMBSTICK_RIGHT
-    }
-
     // External display modes
     public static final String EXTERNAL_DISPLAY_MODE_OFF = "off";
     public static final String EXTERNAL_DISPLAY_MODE_TOUCHPAD = "touchpad";
@@ -107,8 +102,6 @@ public class Container {
     private String midiSoundFont = "";
     private int inputType = WinHandler.PreferredInputApi.BOTH.ordinal();
     private String lc_all = "en_US.utf8";
-    private int primaryController = 1;
-    private String controllerMapping = new String(new char[XrControllerMapping.values().length]);
 
     private String graphicsDriverVersion = "25.1.0"; // Default version or fallback
 
@@ -298,22 +291,6 @@ public class Container {
 
     public void setLC_ALL(String lc_all) {
         this.lc_all = lc_all;
-    }
-
-    public int getPrimaryController() {
-        return primaryController;
-    }
-
-    public void setPrimaryController(int primaryController) {
-        this.primaryController = primaryController;
-    }
-
-    public byte getControllerMapping(XrControllerMapping input) {
-        return (byte) controllerMapping.charAt(input.ordinal());
-    }
-
-    public void setControllerMapping(String controllerMapping) {
-        this.controllerMapping = controllerMapping;
     }
 
     public boolean isShowFPS() {
@@ -675,8 +652,6 @@ public class Container {
             data.put("rcfileId", rcfileId);
             data.put("midiSoundFont", midiSoundFont);
             data.put("lc_all", lc_all);
-            data.put("primaryController", primaryController);
-            data.put("controllerMapping", controllerMapping);
             data.put("execArgs", execArgs);
             data.put("executablePath", executablePath);
             data.put("needsUnpacking", needsUnpacking);
@@ -859,12 +834,6 @@ public class Container {
                     break;
                 case "lc_all" :
                     setLC_ALL(data.getString(key));
-                    break;
-                case "primaryController" :
-                    setPrimaryController(data.getInt(key));
-                    break;
-                case "controllerMapping" :
-                    controllerMapping = data.getString(key);
                     break;
                 case "execArgs" :
                     setExecArgs(data.getString(key));
