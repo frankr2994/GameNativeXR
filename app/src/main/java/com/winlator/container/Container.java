@@ -13,6 +13,7 @@ import com.winlator.core.WineThemeManager;
 import com.winlator.fexcore.FEXCorePreset;
 import com.winlator.winhandler.WinHandler;
 import com.winlator.xenvironment.ImageFs;
+import com.winlator.xserver.XKeycode;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,6 +23,17 @@ import java.util.Iterator;
 import java.util.Locale;
 
 public class Container {
+    public static final int DEFAULT_XR_BUTTON_A = XKeycode.KEY_A.getId();
+    public static final int DEFAULT_XR_BUTTON_B = XKeycode.KEY_B.getId();
+    public static final int DEFAULT_XR_BUTTON_X = XKeycode.KEY_X.getId();
+    public static final int DEFAULT_XR_BUTTON_Y = XKeycode.KEY_Y.getId();
+    public static final int DEFAULT_XR_BUTTON_GRIP = XKeycode.KEY_SPACE.getId();
+    public static final int DEFAULT_XR_BUTTON_TRIGGER = XKeycode.KEY_ENTER.getId();
+    public static final int DEFAULT_XR_THUMBSTICK_UP = XKeycode.KEY_UP.getId();
+    public static final int DEFAULT_XR_THUMBSTICK_DOWN = XKeycode.KEY_DOWN.getId();
+    public static final int DEFAULT_XR_THUMBSTICK_LEFT = XKeycode.KEY_LEFT.getId();
+    public static final int DEFAULT_XR_THUMBSTICK_RIGHT = XKeycode.KEY_RIGHT.getId();
+
     // External display modes
     public static final String EXTERNAL_DISPLAY_MODE_OFF = "off";
     public static final String EXTERNAL_DISPLAY_MODE_TOUCHPAD = "touchpad";
@@ -148,6 +160,16 @@ public class Container {
 
     private boolean portraitMode = false;
 
+    private int xrButtonA = DEFAULT_XR_BUTTON_A;
+    private int xrButtonB = DEFAULT_XR_BUTTON_B;
+    private int xrButtonX = DEFAULT_XR_BUTTON_X;
+    private int xrButtonY = DEFAULT_XR_BUTTON_Y;
+    private int xrButtonGrip = DEFAULT_XR_BUTTON_GRIP;
+    private int xrButtonTrigger = DEFAULT_XR_BUTTON_TRIGGER;
+    private int xrThumbstickUp = DEFAULT_XR_THUMBSTICK_UP;
+    private int xrThumbstickDown = DEFAULT_XR_THUMBSTICK_DOWN;
+    private int xrThumbstickLeft = DEFAULT_XR_THUMBSTICK_LEFT;
+    private int xrThumbstickRight = DEFAULT_XR_THUMBSTICK_RIGHT;
     private int xrCPULevel = 75;
     private int xrGPULevel = 75;
     private int xrRefreshRate = 72;
@@ -696,6 +718,16 @@ public class Container {
             data.put("portraitMode", portraitMode);
 
             // Process XR config
+            data.put("xrButtonA", xrButtonA);
+            data.put("xrButtonB", xrButtonB);
+            data.put("xrButtonX", xrButtonX);
+            data.put("xrButtonY", xrButtonY);
+            data.put("xrButtonGrip", xrButtonGrip);
+            data.put("xrButtonTrigger", xrButtonTrigger);
+            data.put("xrThumbstickDown", xrThumbstickDown);
+            data.put("xrThumbstickUp", xrThumbstickUp);
+            data.put("xrThumbstickLeft", xrThumbstickLeft);
+            data.put("xrThumbstickRight", xrThumbstickRight);
             data.put("xrCPULevel", xrCPULevel);
             data.put("xrGPULevel", xrGPULevel);
             data.put("xrRefreshRate", xrRefreshRate);
@@ -895,6 +927,36 @@ public class Container {
                 case "portraitMode":
                     this.portraitMode = data.getBoolean(key);
                     break;
+                case "xrButtonA" :
+                    setXrButtonA(data.getInt(key));
+                    break;
+                case "xrButtonB" :
+                    setXrButtonB(data.getInt(key));
+                    break;
+                case "xrButtonX" :
+                    setXrButtonX(data.getInt(key));
+                    break;
+                case "xrButtonY" :
+                    setXrButtonY(data.getInt(key));
+                    break;
+                case "xrButtonGrip" :
+                    setXrButtonGrip(data.getInt(key));
+                    break;
+                case "xrButtonTrigger" :
+                    setXrButtonTrigger(data.getInt(key));
+                    break;
+                case "xrThumbstickDown" :
+                    setXrThumbstickDown(data.getInt(key));
+                    break;
+                case "xrThumbstickUp" :
+                    setXrThumbstickUp(data.getInt(key));
+                    break;
+                case "xrThumbstickLeft" :
+                    setXrThumbstickLeft(data.getInt(key));
+                    break;
+                case "xrThumbstickRight" :
+                    setXrThumbstickRight(data.getInt(key));
+                    break;
                 case "xrCPULevel" :
                     setXrCPULevel(data.getInt(key));
                     break;
@@ -1036,6 +1098,66 @@ public class Container {
 
     public void setPortraitMode(boolean portraitMode) {
         this.portraitMode = portraitMode;
+    }
+
+    public int getXrButtonA() { return xrButtonA; }
+
+    public void setXrButtonA(int value) {
+        this.xrButtonA = value;
+    }
+
+    public int getXrButtonB() { return xrButtonB; }
+
+    public void setXrButtonB(int value) {
+        this.xrButtonB = value;
+    }
+
+    public int getXrButtonX() { return xrButtonX; }
+
+    public void setXrButtonX(int value) {
+        this.xrButtonX = value;
+    }
+
+    public int getXrButtonY() { return xrButtonY; }
+
+    public void setXrButtonY(int value) {
+        this.xrButtonY = value;
+    }
+
+    public int getXrButtonGrip() { return xrButtonGrip; }
+
+    public void setXrButtonGrip(int value) {
+        this.xrButtonGrip = value;
+    }
+
+    public int getXrButtonTrigger() { return xrButtonTrigger; }
+
+    public void setXrButtonTrigger(int value) {
+        this.xrButtonTrigger = value;
+    }
+
+    public int getXrThumbstickDown() { return xrThumbstickDown; }
+
+    public void setXrThumbstickDown(int value) {
+        this.xrThumbstickDown = value;
+    }
+
+    public int getXrThumbstickUp() { return xrThumbstickUp; }
+
+    public void setXrThumbstickUp(int value) {
+        this.xrThumbstickUp = value;
+    }
+
+    public int getXrThumbstickLeft() { return xrThumbstickLeft; }
+
+    public void setXrThumbstickLeft(int value) {
+        this.xrThumbstickLeft = value;
+    }
+
+    public int getXrThumbstickRight() { return xrThumbstickRight; }
+
+    public void setXrThumbstickRight(int value) {
+        this.xrThumbstickRight = value;
     }
 
     public int getXrCPULevel() { return xrCPULevel; }

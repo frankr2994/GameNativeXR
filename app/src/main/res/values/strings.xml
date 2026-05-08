@@ -175,6 +175,12 @@
     <string name="cpu_level">CPU level</string>
     <string name="gpu_level">GPU level</string>
     <string name="refresh_rate">Refresh rate</string>
+    <string name="button_grip">Grip button</string>
+    <string name="button_trigger">Trigger button</string>
+    <string name="thumbstick_left">Thumbstick left</string>
+    <string name="thumbstick_right">Thumbstick right</string>
+    <string name="thumbstick_up">Thumbstick up</string>
+    <string name="thumbstick_down">Thumbstick down</string>
     <string name="to_apply_close">To apply the change, close this dialog</string>
 
     <!-- Winlator: Win Components -->

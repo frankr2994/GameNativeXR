@@ -175,16 +175,16 @@ public class XrController {
         // Pass the controller mapping into XServer
         currentButtons = buttons;
         mapKey(XrInterface.ControllerButton.L_MENU, XKeycode.KEY_ESC.getId());
-        mapKey(XrInterface.ControllerButton.R_A, XKeycode.KEY_A.getId());
-        mapKey(XrInterface.ControllerButton.R_B, XKeycode.KEY_B.getId());
-        mapKey(XrInterface.ControllerButton.L_X, XKeycode.KEY_X.getId());
-        mapKey(XrInterface.ControllerButton.L_Y, XKeycode.KEY_Y.getId());
-        mapKey(secondaryGrip, XKeycode.KEY_SPACE.getId());
-        mapKey(secondaryTrigger, XKeycode.KEY_ENTER.getId());
-        mapKey(secondaryUp, XKeycode.KEY_UP.getId());
-        mapKey(secondaryDown, XKeycode.KEY_DOWN.getId());
-        mapKey(secondaryLeft, XKeycode.KEY_LEFT.getId());
-        mapKey(secondaryRight, XKeycode.KEY_RIGHT.getId());
+        mapKey(XrInterface.ControllerButton.R_A, (byte)instance.container.getXrButtonA());
+        mapKey(XrInterface.ControllerButton.R_B, (byte)instance.container.getXrButtonB());
+        mapKey(XrInterface.ControllerButton.L_X, (byte)instance.container.getXrButtonX());
+        mapKey(XrInterface.ControllerButton.L_Y, (byte)instance.container.getXrButtonY());
+        mapKey(secondaryGrip, (byte)instance.container.getXrButtonGrip());
+        mapKey(secondaryTrigger, (byte)instance.container.getXrButtonTrigger());
+        mapKey(secondaryUp, (byte)instance.container.getXrThumbstickUp());
+        mapKey(secondaryDown, (byte)instance.container.getXrThumbstickDown());
+        mapKey(secondaryLeft, (byte)instance.container.getXrThumbstickLeft());
+        mapKey(secondaryRight, (byte)instance.container.getXrThumbstickRight());
         System.arraycopy(buttons, 0, lastButtons, 0, buttons.length);
     }
 

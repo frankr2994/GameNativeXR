@@ -677,6 +677,76 @@ object PrefManager {
             setPref(PORTRAIT_MODE, value)
         }
 
+    private val XR_BUTTON_A = intPreferencesKey("xr_button_a")
+    var xrButtonA: Int
+        get() = getPref(XR_BUTTON_A, Container.DEFAULT_XR_BUTTON_A)
+        set(value) {
+            setPref(XR_BUTTON_A, value)
+        }
+
+    private val XR_BUTTON_B = intPreferencesKey("xr_button_b")
+    var xrButtonB: Int
+        get() = getPref(XR_BUTTON_B, Container.DEFAULT_XR_BUTTON_B)
+        set(value) {
+            setPref(XR_BUTTON_B, value)
+        }
+
+    private val XR_BUTTON_X = intPreferencesKey("xr_button_x")
+    var xrButtonX: Int
+        get() = getPref(XR_BUTTON_X, Container.DEFAULT_XR_BUTTON_X)
+        set(value) {
+            setPref(XR_BUTTON_X, value)
+        }
+
+    private val XR_BUTTON_Y = intPreferencesKey("xr_button_y")
+    var xrButtonY: Int
+        get() = getPref(XR_BUTTON_Y, Container.DEFAULT_XR_BUTTON_Y)
+        set(value) {
+            setPref(XR_BUTTON_Y, value)
+        }
+
+    private val XR_BUTTON_GRIP = intPreferencesKey("xr_button_grip")
+    var xrButtonGrip: Int
+        get() = getPref(XR_BUTTON_GRIP, Container.DEFAULT_XR_BUTTON_GRIP)
+        set(value) {
+            setPref(XR_BUTTON_GRIP, value)
+        }
+
+    private val XR_BUTTON_TRIGGER = intPreferencesKey("xr_button_trigger")
+    var xrButtonTrigger: Int
+        get() = getPref(XR_BUTTON_TRIGGER, Container.DEFAULT_XR_BUTTON_TRIGGER)
+        set(value) {
+            setPref(XR_BUTTON_TRIGGER, value)
+        }
+
+    private val XR_THUMBSTICK_UP = intPreferencesKey("xr_thumbstick_up")
+    var xrThumbstickUp: Int
+        get() = getPref(XR_THUMBSTICK_UP, Container.DEFAULT_XR_THUMBSTICK_UP)
+        set(value) {
+            setPref(XR_THUMBSTICK_UP, value)
+        }
+
+    private val XR_THUMBSTICK_DOWN = intPreferencesKey("xr_thumbstick_down")
+    var xrThumbstickDown: Int
+        get() = getPref(XR_THUMBSTICK_DOWN, Container.DEFAULT_XR_THUMBSTICK_DOWN)
+        set(value) {
+            setPref(XR_THUMBSTICK_DOWN, value)
+        }
+
+    private val XR_THUMBSTICK_LEFT = intPreferencesKey("xr_thumbstick_left")
+    var xrThumbstickLeft: Int
+        get() = getPref(XR_THUMBSTICK_LEFT, Container.DEFAULT_XR_THUMBSTICK_LEFT)
+        set(value) {
+            setPref(XR_THUMBSTICK_LEFT, value)
+        }
+
+    private val XR_THUMBSTICK_RIGHT = intPreferencesKey("xr_thumbstick_right")
+    var xrThumbstickRight: Int
+        get() = getPref(XR_THUMBSTICK_RIGHT, Container.DEFAULT_XR_THUMBSTICK_RIGHT)
+        set(value) {
+            setPref(XR_THUMBSTICK_RIGHT, value)
+        }
+
     private val XR_CPU_LEVEL = intPreferencesKey("xr_cpu_level")
     var xrCPULevel: Int
         get() = getPref(XR_CPU_LEVEL, 75)

@@ -139,6 +139,16 @@ object ContainerUtils {
 			dinputMapperType = PrefManager.dinputMapperType.toByte(),
             disableMouseInput = PrefManager.disableMouseInput,
             portraitMode = PrefManager.portraitMode,
+            xrButtonA = PrefManager.xrButtonA,
+            xrButtonB = PrefManager.xrButtonB,
+            xrButtonX = PrefManager.xrButtonX,
+            xrButtonY = PrefManager.xrButtonY,
+            xrButtonGrip = PrefManager.xrButtonGrip,
+            xrButtonTrigger = PrefManager.xrButtonTrigger,
+            xrThumbstickUp = PrefManager.xrThumbstickUp,
+            xrThumbstickDown = PrefManager.xrThumbstickDown,
+            xrThumbstickLeft = PrefManager.xrThumbstickLeft,
+            xrThumbstickRight = PrefManager.xrThumbstickRight,
             xrCPULevel = PrefManager.xrCPULevel,
             xrGPULevel = PrefManager.xrGPULevel,
             xrRefreshRate = PrefManager.xrRefreshRate,
@@ -208,6 +218,16 @@ object ContainerUtils {
         PrefManager.unpackFiles = containerData.unpackFiles
         PrefManager.suspendPolicy = containerData.suspendPolicy
         PrefManager.portraitMode = containerData.portraitMode
+        PrefManager.xrButtonA = containerData.xrButtonA
+        PrefManager.xrButtonB = containerData.xrButtonB
+        PrefManager.xrButtonX = containerData.xrButtonX
+        PrefManager.xrButtonY = containerData.xrButtonY
+        PrefManager.xrButtonGrip = containerData.xrButtonGrip
+        PrefManager.xrButtonTrigger = containerData.xrButtonTrigger
+        PrefManager.xrThumbstickUp = containerData.xrThumbstickUp
+        PrefManager.xrThumbstickDown = containerData.xrThumbstickDown
+        PrefManager.xrThumbstickLeft = containerData.xrThumbstickLeft
+        PrefManager.xrThumbstickRight = containerData.xrThumbstickRight
         PrefManager.xrCPULevel = containerData.xrCPULevel
         PrefManager.xrGPULevel = containerData.xrGPULevel
         PrefManager.xrRefreshRate = containerData.xrRefreshRate
@@ -311,6 +331,16 @@ object ContainerUtils {
             unpackFiles = container.isUnpackFiles(),
             suspendPolicy = container.suspendPolicy,
             portraitMode = container.isPortraitMode,
+            xrButtonA = container.getExtra("xrButtonA", "" + Container.DEFAULT_XR_BUTTON_A).toIntOrNull() ?: Container.DEFAULT_XR_BUTTON_A,
+            xrButtonB = container.getExtra("xrButtonB", "" + Container.DEFAULT_XR_BUTTON_B).toIntOrNull() ?: Container.DEFAULT_XR_BUTTON_B,
+            xrButtonX = container.getExtra("xrButtonX", "" + Container.DEFAULT_XR_BUTTON_X).toIntOrNull() ?: Container.DEFAULT_XR_BUTTON_X,
+            xrButtonY = container.getExtra("xrButtonY", "" + Container.DEFAULT_XR_BUTTON_Y).toIntOrNull() ?: Container.DEFAULT_XR_BUTTON_Y,
+            xrButtonGrip = container.getExtra("xrButtonGrip", "" + Container.DEFAULT_XR_BUTTON_GRIP).toIntOrNull() ?: Container.DEFAULT_XR_BUTTON_GRIP,
+            xrButtonTrigger = container.getExtra("xrButtonTrigger", "" + Container.DEFAULT_XR_BUTTON_TRIGGER).toIntOrNull() ?: Container.DEFAULT_XR_BUTTON_TRIGGER,
+            xrThumbstickUp = container.getExtra("xrThumbstickUp", "" + Container.DEFAULT_XR_THUMBSTICK_UP).toIntOrNull() ?: Container.DEFAULT_XR_THUMBSTICK_UP,
+            xrThumbstickDown = container.getExtra("xrThumbstickDown", "" + Container.DEFAULT_XR_THUMBSTICK_DOWN).toIntOrNull() ?: Container.DEFAULT_XR_THUMBSTICK_DOWN,
+            xrThumbstickLeft = container.getExtra("xrThumbstickLeft", "" + Container.DEFAULT_XR_THUMBSTICK_LEFT).toIntOrNull() ?: Container.DEFAULT_XR_THUMBSTICK_LEFT,
+            xrThumbstickRight = container.getExtra("xrThumbstickRight", "" + Container.DEFAULT_XR_THUMBSTICK_RIGHT).toIntOrNull() ?: Container.DEFAULT_XR_THUMBSTICK_RIGHT,
             xrCPULevel = container.getExtra("xrCPULevel", "75").toIntOrNull() ?: 75,
             xrGPULevel = container.getExtra("xrGPULevel", "75").toIntOrNull() ?: 75,
             xrRefreshRate = container.getExtra("xrRefreshRate", "72").toIntOrNull() ?: 72,
@@ -498,6 +528,16 @@ object ContainerUtils {
         container.setUnpackFiles(containerData.unpackFiles)
         container.setSuspendPolicy(containerData.suspendPolicy)
         container.setPortraitMode(containerData.portraitMode)
+        container.setXrButtonA(containerData.xrButtonA)
+        container.setXrButtonB(containerData.xrButtonB)
+        container.setXrButtonX(containerData.xrButtonX)
+        container.setXrButtonY(containerData.xrButtonY)
+        container.setXrButtonGrip(containerData.xrButtonGrip)
+        container.setXrButtonTrigger(containerData.xrButtonTrigger)
+        container.setXrThumbstickUp(containerData.xrThumbstickUp)
+        container.setXrThumbstickDown(containerData.xrThumbstickDown)
+        container.setXrThumbstickLeft(containerData.xrThumbstickLeft)
+        container.setXrThumbstickRight(containerData.xrThumbstickRight)
         container.setXrCPULevel(containerData.xrCPULevel)
         container.setXrGPULevel(containerData.xrGPULevel)
         container.setXrRefreshRate(containerData.xrRefreshRate)
@@ -507,6 +547,16 @@ object ContainerUtils {
         if (previousUnpackFiles != containerData.unpackFiles && containerData.unpackFiles) {
             container.setNeedsUnpacking(true)
         }
+        container.putExtra("xrButtonA", containerData.xrButtonA.toString())
+        container.putExtra("xrButtonB", containerData.xrButtonB.toString())
+        container.putExtra("xrButtonX", containerData.xrButtonX.toString())
+        container.putExtra("xrButtonY", containerData.xrButtonY.toString())
+        container.putExtra("xrButtonGrip", containerData.xrButtonGrip.toString())
+        container.putExtra("xrButtonTrigger", containerData.xrButtonTrigger.toString())
+        container.putExtra("xrThumbstickUp", containerData.xrThumbstickUp.toString())
+        container.putExtra("xrThumbstickDown", containerData.xrThumbstickDown.toString())
+        container.putExtra("xrThumbstickLeft", containerData.xrThumbstickLeft.toString())
+        container.putExtra("xrThumbstickRight", containerData.xrThumbstickRight.toString())
         container.putExtra("xrCPULevel", containerData.xrCPULevel.toString())
         container.putExtra("xrGPULevel", containerData.xrGPULevel.toString())
         container.putExtra("xrRefreshRate", containerData.xrRefreshRate.toString())
@@ -882,6 +932,16 @@ object ContainerUtils {
                 unpackFiles = PrefManager.unpackFiles,
                 suspendPolicy = PrefManager.suspendPolicy,
                 portraitMode = PrefManager.portraitMode,
+                xrButtonA = PrefManager.xrButtonA,
+                xrButtonB = PrefManager.xrButtonB,
+                xrButtonX = PrefManager.xrButtonX,
+                xrButtonY = PrefManager.xrButtonY,
+                xrButtonGrip = PrefManager.xrButtonGrip,
+                xrButtonTrigger = PrefManager.xrButtonTrigger,
+                xrThumbstickUp = PrefManager.xrThumbstickUp,
+                xrThumbstickDown = PrefManager.xrThumbstickDown,
+                xrThumbstickLeft = PrefManager.xrThumbstickLeft,
+                xrThumbstickRight = PrefManager.xrThumbstickRight,
                 xrCPULevel = PrefManager.xrCPULevel,
                 xrGPULevel = PrefManager.xrGPULevel,
                 xrRefreshRate = PrefManager.xrRefreshRate,

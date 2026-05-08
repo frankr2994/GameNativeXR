@@ -588,13 +588,33 @@ fun ContainerConfigDialog(
         val sharpnessDenoiseRef = rememberSaveable { mutableIntStateOf(config.sharpnessDenoise.coerceIn(0, 100)) }
         var sharpnessDenoise by sharpnessDenoiseRef
 
+        val xrButtonARef = rememberSaveable { mutableIntStateOf(config.xrButtonA.coerceIn(0, 255)) }
+        var xrButtonA by xrButtonARef
+        val xrButtonBRef = rememberSaveable { mutableIntStateOf(config.xrButtonB.coerceIn(0, 255)) }
+        var xrButtonB by xrButtonBRef
+        val xrButtonXRef = rememberSaveable { mutableIntStateOf(config.xrButtonX.coerceIn(0, 255)) }
+        var xrButtonX by xrButtonXRef
+        val xrButtonYRef = rememberSaveable { mutableIntStateOf(config.xrButtonY.coerceIn(0, 255)) }
+        var xrButtonY by xrButtonYRef
+        val xrButtonGripRef = rememberSaveable { mutableIntStateOf(config.xrButtonGrip.coerceIn(0, 255)) }
+        var xrButtonGrip by xrButtonGripRef
+        val xrButtonTriggerRef = rememberSaveable { mutableIntStateOf(config.xrButtonTrigger.coerceIn(0, 255)) }
+        var xrButtonTrigger by xrButtonTriggerRef
+        val xrThumbstickUpRef = rememberSaveable { mutableIntStateOf(config.xrThumbstickUp.coerceIn(0, 255)) }
+        var xrThumbstickUp by xrThumbstickUpRef
+        val xrThumbstickDownRef = rememberSaveable { mutableIntStateOf(config.xrThumbstickDown.coerceIn(0, 255)) }
+        var xrThumbstickDown by xrThumbstickDownRef
+        val xrThumbstickLeftRef = rememberSaveable { mutableIntStateOf(config.xrThumbstickLeft.coerceIn(0, 255)) }
+        var xrThumbstickLeft by xrThumbstickLeftRef
+        val xrThumbstickRightRef = rememberSaveable { mutableIntStateOf(config.xrThumbstickRight.coerceIn(0, 255)) }
+        var xrThumbstickRight by xrThumbstickRightRef
+
         val xrCPULevelRef = rememberSaveable { mutableIntStateOf(config.xrCPULevel.coerceIn(0, 75)) }
         var xrCPULevel by xrCPULevelRef
         val xrGPULevelRef = rememberSaveable { mutableIntStateOf(config.xrGPULevel.coerceIn(0, 75)) }
         var xrGPULevel by xrGPULevelRef
         val xrRefreshRatelRef = rememberSaveable { mutableIntStateOf(config.xrRefreshRate.coerceIn(60, 90)) }
         var xrRefreshRate by xrRefreshRatelRef
-
 
         val adrenotoolsTurnipCheckedRef = rememberSaveable {
             val cfg = KeyValueSet(config.graphicsDriverConfig)
@@ -635,6 +655,23 @@ fun ContainerConfigDialog(
             sharpnessEffectIndex = sharpnessEffects.indexOfFirst { it.equals(config.sharpnessEffect, true) }.coerceAtLeast(0)
             sharpnessLevel = config.sharpnessLevel.coerceIn(0, 100)
             sharpnessDenoise = config.sharpnessDenoise.coerceIn(0, 100)
+        }
+
+        LaunchedEffect(config.xrButtonA, config.xrButtonB, config.xrButtonX, config.xrButtonY) {
+            xrButtonA = config.xrButtonA.coerceIn(0, 255)
+            xrButtonB = config.xrButtonB.coerceIn(0, 255)
+            xrButtonX = config.xrButtonX.coerceIn(0, 255)
+            xrButtonY = config.xrButtonY.coerceIn(0, 255)
+        }
+        LaunchedEffect(config.xrButtonGrip, config.xrButtonTrigger) {
+            xrButtonGrip = config.xrButtonGrip.coerceIn(0, 255)
+            xrButtonTrigger = config.xrButtonTrigger.coerceIn(0, 255)
+        }
+        LaunchedEffect(config.xrThumbstickUp, config.xrThumbstickDown, config.xrThumbstickLeft, config.xrThumbstickRight) {
+            xrThumbstickUp = config.xrThumbstickUp.coerceIn(0, 255)
+            xrThumbstickDown = config.xrThumbstickDown.coerceIn(0, 255)
+            xrThumbstickLeft = config.xrThumbstickLeft.coerceIn(0, 255)
+            xrThumbstickRight = config.xrThumbstickRight.coerceIn(0, 255)
         }
 
         LaunchedEffect(config.xrCPULevel, config.xrGPULevel, config.xrRefreshRate) {
@@ -980,6 +1017,16 @@ fun ContainerConfigDialog(
             sharpnessEffectIndex = sharpnessEffectIndexRef,
             sharpnessLevel = sharpnessLevelRef,
             sharpnessDenoise = sharpnessDenoiseRef,
+            xrButtonA = xrButtonARef,
+            xrButtonB = xrButtonBRef,
+            xrButtonX = xrButtonXRef,
+            xrButtonY = xrButtonYRef,
+            xrButtonGrip = xrButtonGripRef,
+            xrButtonTrigger = xrButtonTriggerRef,
+            xrThumbstickUp = xrThumbstickUpRef,
+            xrThumbstickDown = xrThumbstickDownRef,
+            xrThumbstickLeft = xrThumbstickLeftRef,
+            xrThumbstickRight = xrThumbstickRightRef,
             xrCPULevel = xrCPULevelRef,
             xrGPULevel = xrGPULevelRef,
             xrRefreshRate = xrRefreshRatelRef,
