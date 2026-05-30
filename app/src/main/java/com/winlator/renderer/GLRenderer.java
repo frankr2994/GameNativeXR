@@ -64,15 +64,11 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
     private final EffectComposer effectComposer;
     private FrameRating frameRating;
 
-<<<<<<< HEAD
     private float lastFPS = 0;
     private long lastTime = 0;
     private int frameCount = 0;
 
-    public GLRenderer(XServerView xServerView, XServer xServer) {
-=======
     public GLRenderer(XServerViewGL xServerView, XServer xServer) {
->>>>>>> master
         this.xServerView = xServerView;
         this.xServer = xServer;
         this.effectComposer = new EffectComposer(this);
