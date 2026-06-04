@@ -2997,7 +2997,7 @@ private fun setupXEnvironment(
     try {
         ModdingUtils.unpackTrackIR(context)
         if (container.isXrUseTrackIR() && (xServer.winHandler != null)) {
-            xServer.winHandler.execWithDelay(ModdingUtils.getRuntimeForTrackIR(), 10)
+            xServer.winHandler.exec(ModdingUtils.getRuntimeForTrackIR())
         }
     } catch (e: Exception) {
         e.printStackTrace();
