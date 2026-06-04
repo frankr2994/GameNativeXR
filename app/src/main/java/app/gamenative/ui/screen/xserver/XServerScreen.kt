@@ -3112,6 +3112,13 @@ private fun setupXEnvironment(
         if (guestProgramLauncherComponent is BionicProgramLauncherComponent) {
             guestProgramLauncherComponent.setFEXCorePreset(container.fexCorePreset)
         }
+
+        if (XrActivity.shouldRebootInXR && !preInstallCommands.isNotEmpty()) {
+            val instance = XrActivity.getInstance()
+            XrActivity.openIntent(instance, instance.container.id, XrActivity.shouldOpenContainer, true)
+            return XEnvironment(context, imageFs)
+        }
+
         guestProgramLauncherComponent.setPreUnpack {
             unpackExecutableFile(
                 context = context,
@@ -3218,8 +3225,16 @@ private fun setupXEnvironment(
             return
         }
         guestProgramLauncherComponent.setGuestExecutable(remaining.first().executable)
+
+        val current = remaining.first()
+        val nextRemaining = remaining.drop(1)
+        if (XrActivity.shouldRebootInXR && nextRemaining.isEmpty()) {
+            val instance = XrActivity.getInstance()
+            XrActivity.openIntent(instance, instance.container.id, XrActivity.shouldOpenContainer, true)
+            return
+        }
+
         guestProgramLauncherComponent.setTerminationCallback { _ ->
-            val current = remaining.first()
             PreInstallSteps.markStepDone(container, current.marker)
             guestProgramLauncherComponent.setPreUnpack(null)
             try {
@@ -3227,7 +3242,6 @@ private fun setupXEnvironment(
             } catch (e: Exception) {
                 Timber.w(e, "wineserver -k between pre-install steps (non-fatal)")
             }
-            val nextRemaining = remaining.drop(1)
             if (nextRemaining.isEmpty()) {
                 PluviaApp.events.emit(AndroidEvent.SetBootingSplashText("Launching game..."))
             } else {
@@ -3284,12 +3298,6 @@ private fun setupXEnvironment(
         Timber.i("Env Vars (Final Guest): ${envVars.toString()}")   // Log the actual env vars being passed
         Timber.i("Guest Executable: ${guestProgramLauncherComponent.guestExecutable}") // Log the command
         Timber.i("---------------------------")
-    }
-
-    if (XrActivity.shouldRebootInXR) {
-        val instance = XrActivity.getInstance()
-        XrActivity.openIntent(instance, instance.container.id, XrActivity.shouldOpenContainer, true)
-        return environment
     }
 
     // Request encrypted app ticket for Steam games at launch time
