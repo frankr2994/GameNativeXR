@@ -14,6 +14,14 @@ This approach allows experimental and early-stage XR features to reach enthusias
 
 At the same time, maintaining compatibility and long-term sustainability remains an important priority. The intention is not to permanently fragment the project, but rather to mature these XR enhancements to a level where they can be cleanly integrated upstream, benefiting the broader community while helping push the ecosystem toward better native XR support overall.
 
+### Status
+This fork is no longer under active development, as there are other efforts to add XR support directly to the upstream GameNative repository. Due to VR community demand, we decided to release this early version to bridge the gap until the upstream implementation is ready.
+
+Please note the following limitations:
+* GameNative and GameNativeXR cannot be installed on the same device at the same time.
+* XR games do not launch automatically. To start a game, navigate to its installation directory on the A:\ drive and run the game's .exe file manually.
+
+
 <img width="1057" height="595" alt="GameNativeXR-history" src="https://github.com/user-attachments/assets/c8ab6d6d-29d1-4a4a-ac3b-edcb6b5c492b" />
 
 ---
