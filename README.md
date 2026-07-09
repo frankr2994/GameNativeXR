@@ -21,9 +21,6 @@ Please note the following limitations:
 * GameNative and GameNativeXR cannot be installed on the same device at the same time.
 * XR games do not launch automatically. To start a game, navigate to its installation directory on the A:\ drive and run the game's .exe file manually.
 
-
-<img width="1057" height="595" alt="GameNativeXR-history" src="https://github.com/user-attachments/assets/c8ab6d6d-29d1-4a4a-ac3b-edcb6b5c492b" />
-
 ---
 
 # Original README
