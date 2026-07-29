@@ -1,6 +1,6 @@
 # Halo 3 on Standalone Quest: Engineering Roadmap
 
-Status: G0 Android baseline complete; Phase 2 bridge validation next
+Status: G0 build baselines complete; Phase 1 flat-game feasibility and Phase 2 bridge validation next
 Target branch: `Dev`
 First game: Steam Halo: The Master Chief Collection, Halo 3 campaign
 Available development device: Meta Quest 2
@@ -11,8 +11,14 @@ from source using JDK 17, Android SDK 35, and NDK `22.1.7171670`. Because the
 historic JavaSteam snapshot artifacts are not reliably available, the build
 uses locally built artifacts from the `joshuatam/JavaSteam` `gamenative-latest`
 branch by default; this is documented in the repository README and committed
-in `67d5e742`. The Android baseline is reproducible, but the Halo-MCC-VR
-Windows baseline and physical Quest 2 run remain outstanding G0/G1 evidence.
+in `67d5e742`. Halo-MCC-VR commit `ba1407ae5e0fee09f16fa8b52e3c2f2740344ba6`
+also configured, built the Release x64 DLL/launcher, and passed its core test
+on this machine with CMake 4.1.2, MSVC 14.31.31103, and the repository-pinned
+OpenXR-SDK, MinHook, and Dear ImGui revisions. Use
+`cmake --build --preset release --parallel 1` here: the default parallel
+aggregate build reported a silent MSBuild project-reference failure, while the
+single-job aggregate build succeeded. Physical Quest 2 runs remain G1 evidence;
+the supported PCVR runtime reference has not been revalidated in this session.
 
 ## 1. Objective
 
@@ -177,7 +183,7 @@ Goal: establish known-good PCVR and Android baselines before changing behavior.
 | Add project-specific agent/build guidance without overriding Halo-MCC-VR's existing safety rules | Codex | C-M | Concise `AGENTS.md`/build documentation |
 | Build the fork's unmodified `Dev` APK | Codex | C-M | **Complete:** source-accountable debug APK; local GameNative JavaSteam fallback documented in `67d5e742` |
 | Verify APK identity and prepare an explicit Quest deployment path | Codex | C-M | **Complete:** `tools/verify-quest-apk.ps1` verifies package, ABI, Quest manifest entries, signing, hash, and optional ADB install/launch |
-| Build unmodified Halo-MCC-VR on Windows x64 | Codex + Rider | C-M | DLL, launcher, tests, and exact commands |
+| Build unmodified Halo-MCC-VR on Windows x64 | Codex + Rider | C-M | **Complete:** commit `ba1407a`; `cmake --preset release`, `cmake --build --preset release --parallel 1`, and `ctest --preset release` pass |
 | Verify Halo 3 PCVR behavior on the existing supported PC path | User + Codex | C-H for failures only | Reference logs/config and headset acceptance notes |
 | Audit licenses and provenance of packaged native binaries, especially `libxr.so` | Antigravity review, Codex decision | AG-PL / C-H | Source/provenance ledger and blockers |
 
