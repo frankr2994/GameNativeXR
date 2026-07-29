@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.20)
+
+project(GameNativeXrVisualHarness VERSION 0.1.0 LANGUAGES CXX)
+
+if(NOT WIN32)
+    message(FATAL_ERROR "The visual harness currently targets Windows x64 and D3D11")
+endif()
+
+set(OPENXR_SDK_SOURCE_DIR "" CACHE PATH "Path to a Khronos OpenXR-SDK-Source checkout")
+
+if(OPENXR_SDK_SOURCE_DIR)
+    if(NOT EXISTS "${OPENXR_SDK_SOURCE_DIR}/include/openxr/openxr.h")
+        message(FATAL_ERROR "OPENXR_SDK_SOURCE_DIR does not contain include/openxr/openxr.h")
+    endif()
+    set(BUILD_API_LAYERS OFF CACHE BOOL "" FORCE)
+    set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_CONFORMANCE_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_SDK_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_LOADER ON CACHE BOOL "" FORCE)
+    set(DYNAMIC_LOADER OFF CACHE BOOL "" FORCE)
+    add_subdirectory("${OPENXR_SDK_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/openxr" EXCLUDE_FROM_ALL)
+else()
+    find_package(OpenXR CONFIG REQUIRED)
+endif()
+
+add_executable(xr_visual_harness src/main.cpp)
+target_compile_features(xr_visual_harness PRIVATE cxx_std_17)
+target_compile_definitions(xr_visual_harness PRIVATE XR_USE_PLATFORM_WIN32 XR_USE_GRAPHICS_API_D3D11 NOMINMAX WIN32_LEAN_AND_MEAN)
+target_compile_options(xr_visual_harness PRIVATE /W4 /permissive-)
+target_link_libraries(xr_visual_harness PRIVATE OpenXR::openxr_loader d3d11 dxgi)
+
+include(CTest)
+if(BUILD_TESTING)
+    add_test(NAME xr_visual_harness_self_test COMMAND xr_visual_harness --self-test)
+endif()

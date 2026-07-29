@@ -1,6 +1,6 @@
 # Halo 3 on Standalone Quest: Engineering Roadmap
 
-Status: G0 build baselines complete; Phase 1 flat-game feasibility next; Phase 2 protocol mock is runnable and simulator visual-harness implementation is next
+Status: G0 build baselines complete; Phase 1 flat-game feasibility next; Phase 2 desktop protocol/simulator probes are runnable and physical Quest validation remains
 Target branch: `Dev`
 First game: Steam Halo: The Master Chief Collection, Halo 3 campaign
 Available development device: Meta Quest 2
@@ -249,9 +249,9 @@ without MCC, Steam, game hooks, or signature scanning.
 | Write a normative version 0.4 protocol specification from host code and packet captures | Codex | C-H | **Initial specification complete:** `docs/XR_BRIDGE_PROTOCOL.md`; units/handedness remain measured-validation items |
 | Create golden packet vectors and parser/serializer tests | Antigravity | AG-FM | **Design complete:** corpus in `ANTIGRAVITY_HANDOFFS/TASK-01-protocol-vectors`; Codex must integrate strict tests before it is treated as executable proof |
 | Implement a protocol-only mock host and x64 guest parser/serializer | Codex | C-M | **Complete:** `tools/xr-bridge-protocol` has a strict parser/serializer, vector-backed CTest coverage, and a loopback UDP fixture; malformed packets are rejected atomically |
-| Implement an independent x64 Windows OpenXR/D3D11 visual harness | Antigravity in isolated worktree | AG-FH | Simulator-runnable SBS/AER test-pattern harness; it must not claim to exercise the Android XServer image path |
+| Implement an independent x64 Windows OpenXR/D3D11 visual harness | Codex | C-H | **Complete:** `tools/xr-visual-harness` renders deterministic stereo, SBS, and AER diagnostic patterns through a two-view D3D11 OpenXR swapchain |
 | Add host diagnostics for session state, frame ID, eye selection, packets, and dropped frames | Codex | C-M | Structured, rate-limited logs, after a source-owned host seam exists |
-| Exercise the visual harness in Meta XR Simulator | Antigravity test script; Codex integration | AG-FM / C-M | Repeatable simulator scenario; does not substitute for protocol-mock tests or physical Quest APK testing |
+| Exercise the visual harness in Meta XR Simulator | Codex | C-H | **API/frame-loop scope complete:** Meta XR Simulator 205 passed stereo 120-frame and SBS/AER 30-frame runs using process-local `XR_RUNTIME_JSON`; captured/human visual acceptance and Android transport validation remain |
 | Confirm physical-device eye order, scale, FOV, pose direction, controls, and haptics | User + Codex | C-H for failures | Quest 2 acceptance capture, repeated later on Quest 3 |
 | Prove the Android-host image path avoids CPU readback | Codex + graphics profiler | C-H | Physical-device GPU trace and frame-time evidence |
 
