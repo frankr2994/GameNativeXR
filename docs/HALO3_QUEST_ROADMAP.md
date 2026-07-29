@@ -1,20 +1,29 @@
 # Halo 3 on Standalone Quest: Engineering Roadmap
 
-Status: G0 build baselines complete; Phase 1 flat-game feasibility next; Phase 2 desktop protocol/simulator probes are runnable and physical Quest validation remains
-Target branch: `Dev`
+Status: G0 build baselines complete; post-upstream qualification is active on `Dev-Update`; simulator regressions can proceed before physical Quest 2 gates
+Target branch: `Dev-Update`
 First game: Steam Halo: The Master Chief Collection, Halo 3 campaign
 Available development device: Meta Quest 2
 Additional validation target: Meta Quest 3 when hardware is available
 
-Current evidence snapshot (2026-07-28): GameNativeXR `Dev` builds a debug APK
-from source using JDK 17, Android SDK 35, and NDK `22.1.7171670`. Because the
-historic JavaSteam snapshot artifacts are not reliably available, the build
-uses locally built artifacts from the `joshuatam/JavaSteam` `gamenative-latest`
-branch by default; this is documented in the repository README and committed
-in `67d5e742`. Halo-MCC-VR commit `ba1407ae5e0fee09f16fa8b52e3c2f2740344ba6`
-also configured, built the Release x64 DLL/launcher, and passed its core test
-on this machine with CMake 4.1.2, MSVC 14.31.31103, and the repository-pinned
-OpenXR-SDK, MinHook, and Dear ImGui revisions. Use
+Current evidence snapshot (2026-07-29): GameNativeXR `Dev-Update` contains the
+full merge of GameNative upstream `d8535825` into the XR baseline at
+`9e9bcdc5`, followed by the XR routing/documentation correction at `e7616c75`.
+`assembleModernXrDebug` succeeds using JDK 17, compile/target SDK 36, and the
+project-pinned NDK `27.3.13750724`. The Android Gradle Plugin currently warns
+that it was tested only through compile SDK 35; this is a tracked toolchain
+warning, not a build failure. The generated APK passes package, signing,
+Quest activity/category, ARM64 ABI, `libxr.so`, and OpenXR-loader checks through
+`tools/verify-quest-apk.ps1`.
+
+Because the historic JavaSteam snapshot artifacts are not reliably available,
+the build uses locally built artifacts from the `joshuatam/JavaSteam`
+`gamenative-latest` branch by default; this remains documented in the
+repository README. Halo-MCC-VR commit
+`ba1407ae5e0fee09f16fa8b52e3c2f2740344ba6` also configured, built the Release
+x64 DLL/launcher, and passed its core test on this machine with CMake 4.1.2,
+MSVC 14.31.31103, and the repository-pinned OpenXR-SDK, MinHook, and Dear ImGui
+revisions. Use
 `cmake --build --preset release --parallel 1` here: the default parallel
 aggregate build reported a silent MSBuild project-reference failure, while the
 single-job aggregate build succeeded. Physical Quest 2 runs remain G1 evidence;
@@ -47,8 +56,17 @@ This project will not:
 
 - GameNativeXR already starts Windows software through Wine with Box64 or FEX
   and contains Steam integration paths.
+- `Dev-Update` now includes the current upstream renderer split, modern/legacy
+  build flavors, updated Steam/Bionic behavior, PulseAudio changes, current
+  graphics-driver defaults, library synchronization, and Android platform
+  updates. These capabilities are inherited baseline code, not proof that each
+  path works in an XR session on Quest.
 - Its XR host is an Android OpenXR activity. `XrRenderer` can submit a flat
   window, side-by-side (SBS) stereo, or alternate-eye rendering (AER).
+- Upstream defaults non-XR containers to its Vulkan X-server renderer. XR
+  sessions are intentionally forced through `XServerViewGL` because the
+  existing `XrRenderer` requires that view's shared EGL context. Direct
+  Vulkan-to-XR presentation is not implemented.
 - The host already sends headset and controller state to a guest through an XR
   protocol with versions 0.1 through 0.4. It receives VR/3D mode, FOV, and
   haptic state from the guest.
@@ -115,6 +133,20 @@ OpenXR/D3D11 visual harness, but it cannot prove the Android host's XServer
 frame-sync/image path. APK lifecycle, performance, thermals, and headset
 acceptance require the physical Quest 2.
 
+### Post-upstream merge review
+
+- GameNative upstream was merged as history rather than reconstructed through
+  cherry-picks. The merge parents and conflict decisions are recorded in
+  `docs/UPSTREAM_GAMENATIVE_SYNC.md`.
+- The `modernXrDebug` APK builds and passes static Quest packaging checks.
+- A static review found and corrected an XR runtime-routing regression:
+  XR-enabled sessions now select `XServerViewGL` even when the container's
+  normal renderer preference is Vulkan.
+- The protocol mock and Windows visual harness were created before this merge.
+  They must be rerun from `Dev-Update` to qualify the merged baseline.
+- Upstream Steam, audio, input, suspend/resume, and renderer behavior still
+  require runtime smoke tests. Compilation alone does not qualify those paths.
+
 ### Batch 2 handoff review
 
 The five Antigravity Batch 2 handoffs are complete and reviewed. Their
@@ -152,9 +184,9 @@ artifacts remain in `F:\QuestVR\ANTIGRAVITY_HANDOFFS\BATCH-03-*`:
   guest-serialization tests remain follow-up coverage.
 - The Android packaging audit confirms that XR native libraries are prebuilt,
   loaded in `:vr_process`, and currently arm64-only even though the Gradle ABI
-  filter also names `armeabi-v7a`. APK verification does not yet assert the
-  presence and hashes of the specific XR `.so` entries. This is a packaging
-  hardening task, not evidence that the APK runs on a Quest.
+  filter also names `armeabi-v7a`. The subsequent verifier hardening now
+  asserts the presence and hashes of the ARM64 XR `.so` entries. This remains
+  packaging evidence, not proof that the APK runs on a Quest.
 - The simulator visual specification is useful for operator acceptance, and
   its process-local runtime guardrail has been exercised. Its proposed
   top-left frame-sync pixel and true AER buffer-update checks are not present
@@ -192,6 +224,7 @@ must not hide a basic game-emulation failure.
 | Gate | Required proof | Stop condition |
 |---|---|---|
 | G0: Reproducible baselines | GameNativeXR APK and Halo-MCC-VR Windows build are reproducible from pinned commits | Missing source, toolchain, or undocumented binary prevents reproduction |
+| G0U: Post-upstream qualification | `Dev-Update` builds, passes APK verification and desktop protocol/simulator regressions, and has no known static XR-routing blocker | Merge regression invalidates the bridge, renderer selection, packaging, or simulator harness |
 | G1: Flat Halo 3 | The available Quest 2 launches owned MCC/Halo 3 without anti-cheat and completes 30 minutes of campaign in a flat window | OOM, unsupported instruction, DRM/auth failure, or unusable sustained frame rate; a measured Quest 2 hardware ceiling requires Quest 3 access before work can resume |
 | G2: XR bridge probe | A protocol mock validates UDP parsing/serialization, and an independent Windows x64 OpenXR/D3D11 harness validates simulator presentation; physical Quest then validates the Android host/image path | Protocol is unstable, host/image-path behavior differs, or eye images require CPU readback |
 | G3: Halo stereo | Halo 3 renders geometrically correct left/right eyes in-headset while the PCVR backend still works | Per-eye hooks fail under Wine/Box64 or image transport is too expensive |
@@ -209,13 +242,13 @@ after a failed attempt or when the task crosses multiple runtime boundaries.
 
 | Label | Model and reasoning | Use |
 |---|---|---|
-| C-L | GPT-5.6 Luna, low | Mechanical extraction, formatting, deterministic transformations |
-| C-M | GPT-5.6 Terra, medium | Normal implementation, build fixes, tests, integration in one subsystem |
-| C-H | GPT-5.6 Sol, high | Cross-repository design, difficult debugging, OpenXR lifecycle, JNI, Wine/Box64, frame timing |
-| C-XH | GPT-5.6 Sol, extra high | Rare escalation for unresolved concurrency, frame-pacing, or reverse-engineering problems |
+| C-L | Codex GPT-5, low | Mechanical extraction, formatting, deterministic transformations |
+| C-M | Codex GPT-5, medium | Normal implementation, build fixes, tests, integration in one subsystem |
+| C-H | Codex GPT-5, high | Cross-repository design, difficult debugging, OpenXR lifecycle, JNI, Wine/Box64, frame timing |
+| C-XH | Codex GPT-5, extra high when available | Rare escalation for unresolved concurrency, frame-pacing, or reverse-engineering problems |
 
 Codex is the integrator because it owns the working tree, build/test loop, Git
-history, and pushes to `Dev`.
+history, and pushes to `Dev-Update`.
 
 ### Antigravity CLI
 
@@ -228,11 +261,12 @@ history, and pushes to `Dev`.
 | AG-PH | Gemini 3.1 Pro, high | Independent architecture critique, graphics/timing analysis, difficult postmortems |
 
 Antigravity should usually produce a report, patch, or isolated commit. It
-should not integrate directly into `Dev`.
+should not integrate directly into `Dev-Update` unless a prompt explicitly
+assigns Antigravity an integration task.
 
 ### Parallel-work rules
 
-1. Codex owns `Dev` and final integration.
+1. Codex owns `Dev-Update` and final integration.
 2. Each Antigravity coding task gets a separate worktree and branch named
    `agent/ag-<task>`.
 3. Two agents never edit the same files concurrently.
@@ -253,7 +287,7 @@ Goal: establish known-good PCVR and Android baselines before changing behavior.
 |---|---|---|---|
 | Record commit, submodule, binary, SDK, NDK, JDK, CMake, compiler, Wine, Box64/FEX, DXVK, and device versions | Antigravity | AG-FL | **Complete:** environment manifest and setup checklist; use Codex's successful-build logs as authoritative where tool-version snapshots differ |
 | Add project-specific agent/build guidance without overriding Halo-MCC-VR's existing safety rules | Codex | C-M | Concise `AGENTS.md`/build documentation |
-| Build the fork's unmodified `Dev` APK | Codex | C-M | **Complete:** source-accountable debug APK; local GameNative JavaSteam fallback documented in `67d5e742` |
+| Build the fork's original `Dev` APK | Codex | C-M | **Complete:** source-accountable debug APK; local GameNative JavaSteam fallback documented in `67d5e742` |
 | Verify APK identity and prepare an explicit Quest deployment path | Codex | C-M | **Complete:** `tools/verify-quest-apk.ps1` verifies package, ABI, Quest manifest entries, signing, hash, and optional ADB install/launch |
 | Verify required XR native entries and reconcile ABI declarations | Codex | C-M | **Complete:** verifier asserts arm64 `libxr.so` and OpenXR-loader APK entries match source hashes; `armeabi-v7a` remains only for general-app native components, not Quest XR |
 | Build unmodified Halo-MCC-VR on Windows x64 | Codex + Rider | C-M | **Complete:** commit `ba1407a`; `cmake --preset release`, `cmake --build --preset release --parallel 1`, and `ctest --preset release` pass |
@@ -261,6 +295,27 @@ Goal: establish known-good PCVR and Android baselines before changing behavior.
 | Audit licenses and provenance of packaged native binaries, especially `libxr.so` | Antigravity review, Codex decision | AG-PL / C-H | **Evidence inventory complete:** SHA-256 and historical attribution recorded; exact source/license confirmation remains a release blocker |
 
 Gate: G0.
+
+### Phase 0U — Post-Upstream Qualification
+
+Goal: establish that the merged GameNative platform remains a valid XR
+development baseline before changing guest behavior or adding a game profile.
+
+| Task | Owner | Model | Deliverable |
+|---|---|---|---|
+| Merge current GameNative upstream history into the XR fork | Antigravity implementation; Codex review | AG-PH / C-H | **Complete:** merge `9e9bcdc5` preserves upstream history and XR variants |
+| Restore correct XR renderer selection after the upstream Vulkan default | Codex | C-M | **Complete:** `e7616c75` forces XR through `XServerViewGL` and keeps Vulkan for non-XR sessions |
+| Build and statically verify `modernXrDebug` | Codex | C-M | **Complete:** Gradle build and `tools/verify-quest-apk.ps1` pass |
+| Rerun strict protocol parser/serializer and UDP loopback tests from `Dev-Update` | Codex | C-M | Fresh test report tied to the post-merge commit |
+| Rerun stereo, SBS, and AER visual-harness scenarios in Meta XR Simulator | Codex | C-H | Fresh automated frame-loop results and operator capture where available |
+| Audit merged renderer, activity lifecycle, audio focus, input, and suspend/resume seams for XR-specific regressions | Antigravity read-only review; Codex decision | AG-PL / C-H | Ranked findings with source locations and no speculative fixes |
+| Add rate-limited Java-side logging for renderer selection and XR activity transitions if current logs are insufficient | Codex | C-M | Logcat evidence identifies selected renderer and lifecycle transitions |
+| Record the Android Gradle Plugin/compile SDK 36 compatibility warning and decide whether to upgrade only if it becomes actionable | Antigravity inventory; Codex decision | AG-FL / C-M | Toolchain issue recorded without unrelated build-system churn |
+
+Simulator work can complete the protocol and Windows OpenXR portions of this
+phase. It cannot execute the Android APK or close physical Quest requirements.
+
+Gate: G0U.
 
 ### Phase 1 — Flat Halo 3 Feasibility
 
@@ -294,7 +349,7 @@ without MCC, Steam, game hooks, or signature scanning.
 | Task | Owner | Model | Deliverable |
 |---|---|---|---|
 | Write a normative version 0.4 protocol specification from host code and packet captures | Codex | C-H | **Initial specification complete:** `docs/XR_BRIDGE_PROTOCOL.md`; units/handedness remain measured-validation items |
-| Create golden packet vectors and parser/serializer tests | Antigravity | AG-FM | **Design complete:** corpus in `ANTIGRAVITY_HANDOFFS/TASK-01-protocol-vectors`; Codex must integrate strict tests before it is treated as executable proof |
+| Create golden packet vectors and parser/serializer tests | Antigravity design; Codex integration | AG-FM / C-M | **Complete:** corpus informed the strict executable tests in `tools/xr-bridge-protocol`; rerun them for G0U |
 | Implement a protocol-only mock host and x64 guest parser/serializer | Codex | C-M | **Complete:** `tools/xr-bridge-protocol` has a strict parser/serializer, full malformed-packet edge coverage, and a loopback UDP fixture; malformed packets are rejected atomically |
 | Implement an independent x64 Windows OpenXR/D3D11 visual harness | Codex | C-H | **Complete:** `tools/xr-visual-harness` renders deterministic stereo, SBS, and AER diagnostic patterns through a two-view D3D11 OpenXR swapchain |
 | Add host diagnostics for session state, frame ID, eye selection, packets, and dropped frames | Codex | C-M | Structured, rate-limited logs, after a source-owned host seam exists |
@@ -481,9 +536,10 @@ Only begin after G7.
 ### Required before Phase 1
 
 - JDK 17.
-- Android SDK platform/build tools 35.
-- The NDK version pinned by GameNativeXR (`22.1.7171670`) installed side by
-  side with a current NDK for new Meta/OpenXR native work.
+- Android SDK platform/build tools 36, while retaining installed platform 35
+  until the Android Gradle Plugin compatibility warning is resolved.
+- The NDK version pinned by `Dev-Update` (`27.3.13750724`) installed side by
+  side with any older NDK required to reproduce historical XR binaries.
 - CMake 3.24+ and Ninja.
 - Visual Studio 2022 Desktop C++ workload, current Windows SDK, C++20 tools, and
   FXC/D3D compiler components.
@@ -533,7 +589,7 @@ device data must not enter Git.
 
 The first target is complete when:
 
-1. A clean `Dev` checkout builds a source-accountable GameNativeXR APK.
+1. A clean `Dev-Update` checkout builds a source-accountable GameNativeXR APK.
 2. The user can configure a legitimately owned Halo 3 installation without
    anti-cheat or modified game binaries.
 3. Halo 3 launches directly on Quest 2 and reaches campaign gameplay.
@@ -546,21 +602,25 @@ The first target is complete when:
    instructions are documented.
 8. Quest 3 is separately validated before Quest 3 support is claimed.
 
-## 10. First Execution Package
+## 10. Next Execution Package
 
 Start in this order:
 
-1. Complete the environment/provenance manifest and build both unmodified
-   projects.
-2. Verify the Halo-MCC-VR PCVR reference.
-3. Attempt G1 on Quest 2 with a flat Halo 3 window.
-4. Use the completed protocol corpus to implement a mock UDP fixture, then build
-   the independent simulator visual harness; do not represent either as an
-   Android image-path validation.
-5. Do not refactor Halo-MCC-VR or replace `libxr.so` until G1 evidence exists,
-   unless missing `libxr.so` source blocks a reproducible release baseline.
+1. Rerun the protocol mock's full parser, serializer, malformed-packet, and UDP
+   loopback suite from `Dev-Update`.
+2. Rerun stereo, SBS, and AER visual-harness scenarios in Meta XR Simulator and
+   attach fresh results to the `Dev-Update` commit.
+3. Complete a read-only XR seam audit of the merged renderer, activity
+   lifecycle, audio-focus, input, and suspend/resume changes.
+4. Add only the diagnostics required to make the first Android XR launch
+   observable, then rebuild and verify the APK.
+5. Verify the existing Halo-MCC-VR PCVR reference before changing its backend.
+6. When ready to use the physical Quest 2, attempt G1 with a flat Halo 3 window
+   and collect one complete evidence bundle.
 
-The first request to the user should be the owned MCC/Halo 3 install location,
-Steam build ID, relevant executable/DLL hashes, Quest 2 connection, and the
-output of the baseline toolchain manifest. Halo tools are not needed until a
-specific hook or signature failure is observed.
+Items 1 through 3 can proceed with the current simulator-only workflow. Items 4
+and 6 require Android/Quest evidence for completion even if their code and
+automation are prepared on the desktop. Do not refactor Halo-MCC-VR or replace
+`libxr.so` until G1 evidence exists, unless missing `libxr.so` source blocks a
+reproducible release baseline. Halo tools are not needed until a specific hook,
+signature, or data-layout failure is observed.
