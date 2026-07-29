@@ -1,10 +1,18 @@
 # Halo 3 on Standalone Quest: Engineering Roadmap
 
-Status: planning baseline
+Status: G0 Android baseline complete; Phase 2 bridge validation next
 Target branch: `Dev`
 First game: Steam Halo: The Master Chief Collection, Halo 3 campaign
 Available development device: Meta Quest 2
 Additional validation target: Meta Quest 3 when hardware is available
+
+Current evidence snapshot (2026-07-28): GameNativeXR `Dev` builds a debug APK
+from source using JDK 17, Android SDK 35, and NDK `22.1.7171670`. Because the
+historic JavaSteam snapshot artifacts are not reliably available, the build
+uses locally built artifacts from the `joshuatam/JavaSteam` `gamenative-latest`
+branch by default; this is documented in the repository README and committed
+in `67d5e742`. The Android baseline is reproducible, but the Halo-MCC-VR
+Windows baseline and physical Quest 2 run remain outstanding G0/G1 evidence.
 
 ## 1. Objective
 
@@ -80,6 +88,24 @@ MCC/Halo 3 D3D11 -> DXVK/Vulkan -> GameNativeXR display surface
 
 The existing SteamVR/OpenXR backend remains intact for regression testing.
 
+### Verified bridge facts and evidence limits
+
+The current Android host/guest bridge uses ASCII UDP packets. Guest-to-host
+state arrives on UDP port `7278`; host-to-guest state uses `7872`, with
+protocol 0.4 also using `7873`. The version/system files and debug override
+path are documented in [XR_BRIDGE_PROTOCOL.md](XR_BRIDGE_PROTOCOL.md).
+Protocol 0.4 carries headset and controller pose, thumbstick, button, mode,
+FOV, IPD, sync, and haptic fields. Exact position/quaternion units,
+handedness, and some ranges are not established by formatting alone and must
+be measured with golden vectors and a physical Quest acceptance run.
+
+The native host implementation is still only the prebuilt ARM64
+`libxr.so`; its source and provenance are unresolved. The installed Meta XR
+Simulator is a Windows OpenXR runtime, so it cannot install or execute the
+Android GameNativeXR APK directly. It can run the Windows x64 bridge probe
+and provide deterministic pose/stereo automation; APK lifecycle, performance,
+thermals, and headset acceptance require the physical Quest 2.
+
 ## 3. Program Gates
 
 Work must stop at a failed gate until the failure is understood. Later XR work
@@ -149,7 +175,7 @@ Goal: establish known-good PCVR and Android baselines before changing behavior.
 |---|---|---|---|
 | Record commit, submodule, binary, SDK, NDK, JDK, CMake, compiler, Wine, Box64/FEX, DXVK, and device versions | Antigravity | AG-FL | Machine-readable environment manifest and setup checklist |
 | Add project-specific agent/build guidance without overriding Halo-MCC-VR's existing safety rules | Codex | C-M | Concise `AGENTS.md`/build documentation |
-| Build the fork's unmodified `Dev` APK | Codex | C-M | Reproducible debug APK and build log |
+| Build the fork's unmodified `Dev` APK | Codex | C-M | **Complete:** source-accountable debug APK; local GameNative JavaSteam fallback documented in `67d5e742` |
 | Build unmodified Halo-MCC-VR on Windows x64 | Codex + Rider | C-M | DLL, launcher, tests, and exact commands |
 | Verify Halo 3 PCVR behavior on the existing supported PC path | User + Codex | C-H for failures only | Reference logs/config and headset acceptance notes |
 | Audit licenses and provenance of packaged native binaries, especially `libxr.so` | Antigravity review, Codex decision | AG-PL / C-H | Source/provenance ledger and blockers |
@@ -187,11 +213,11 @@ without MCC, Steam, game hooks, or signature scanning.
 
 | Task | Owner | Model | Deliverable |
 |---|---|---|---|
-| Write a normative version 0.4 protocol specification from host code and packet captures | Codex | C-H | Field order, units, handedness, ports, state machine, error behavior |
-| Create golden packet vectors and parser/serializer tests | Antigravity | AG-FM | Deterministic test corpus |
-| Build a tiny x64 Windows D3D11 bridge probe | Antigravity in isolated worktree | AG-FH | Pose/controller viewer plus SBS/AER stereo patterns |
+| Write a normative version 0.4 protocol specification from host code and packet captures | Codex | C-H | **Initial specification complete:** `docs/XR_BRIDGE_PROTOCOL.md`; units/handedness remain measured-validation items |
+| Create golden packet vectors and parser/serializer tests | Antigravity | AG-FM | **Next:** deterministic test corpus for ports 7278/7872/7873 and v0.4 field order |
+| Build a tiny x64 Windows D3D11 bridge probe | Antigravity in isolated worktree | AG-FH | **Next:** Windows OpenXR probe; must run in Meta XR Simulator, not as an Android APK |
 | Add host diagnostics for session state, frame ID, eye selection, packets, and dropped frames | Codex | C-M | Structured, rate-limited logs |
-| Exercise the probe in Meta XR Simulator | Antigravity test script; Codex integration | AG-FM / C-M | Repeatable simulator scenario |
+| Exercise the Windows probe in Meta XR Simulator | Antigravity test script; Codex integration | AG-FM / C-M | Repeatable simulator scenario; does not substitute for physical Quest APK testing |
 | Confirm physical-device eye order, scale, FOV, pose direction, controls, and haptics | User + Codex | C-H for failures | Quest 2 acceptance capture, repeated later on Quest 3 |
 | Prove the image path avoids CPU readback | Codex + graphics profiler | C-H | GPU trace and frame-time evidence |
 
