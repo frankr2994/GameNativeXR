@@ -330,6 +330,13 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         internal var instance: SteamService? = null
 
+        /**
+         * Diagnostic-only indicator for process-boundary launch investigations.
+         * A SteamService instance is local to the Android process that created it.
+         */
+        @JvmStatic
+        fun isServiceAvailable(): Boolean = instance != null
+
         var cachedAchievements: List<app.gamenative.statsgen.Achievement>? = null
             private set
         var cachedAchievementsAppId: Int? = null

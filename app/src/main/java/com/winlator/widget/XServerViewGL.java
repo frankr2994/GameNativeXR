@@ -3,6 +3,7 @@ package com.winlator.widget;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.opengl.GLSurfaceView;
+import android.util.Log;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
@@ -31,6 +32,8 @@ public class XServerViewGL extends GLSurfaceView implements XServerRendererView 
         setPreserveEGLContextOnPause(true);
         this.xServer = xServer;
         renderer = com.winlator.xr.XrActivity.isEnabled() ? new com.winlator.xr.XrRenderer(this, xServer) : new GLRenderer(this, xServer);
+        Log.i("XrRoute", "XServerViewGL renderer=" + renderer.getClass().getSimpleName()
+                + ", xrEnabled=" + com.winlator.xr.XrActivity.isEnabled());
         setRenderer(renderer);
         setRenderMode(RENDERMODE_WHEN_DIRTY);
     }

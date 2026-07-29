@@ -1821,6 +1821,14 @@ fun XServerScreen(
             val useGLRenderer = XrActivity.isEnabled() ||
                     container.graphicsDriver == "virgl" ||
                     container.displayRenderer.equals("gl", true)
+            Timber.tag("XrRoute").i(
+                "Renderer route: xrEnabled=%s, graphicsDriver=%s, requestedRenderer=%s, selected=%s, steamServiceAvailable=%s",
+                XrActivity.isEnabled(),
+                container.graphicsDriver,
+                container.displayRenderer,
+                if (useGLRenderer) "gl" else "vulkan",
+                SteamService.isServiceAvailable(),
+            )
             val xServerViewInstance: XServerRendererView = if (useGLRenderer) {
                 XServerViewGL(context, xServerToUse)
             } else {

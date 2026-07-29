@@ -20,11 +20,14 @@ package com.winlator.xr;
 
 import android.app.Activity;
 import android.app.ActivityOptions;
+import android.app.Application;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Process;
+import android.util.Log;
 import android.util.Pair;
 import android.view.Display;
 import android.content.SharedPreferences;
@@ -45,6 +48,7 @@ import com.winlator.xserver.XLock;
 import com.winlator.xserver.XServer;
 
 import app.gamenative.MainActivity;
+import app.gamenative.service.SteamService;
 import app.gamenative.ui.PlayBridge;
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -123,6 +127,7 @@ public class XrActivity extends MainActivity {
         shouldRebootInXR = getIntent().getBooleanExtra(EXTRA_REBOOT_XR, false);
         String containerId = getIntent().getStringExtra(EXTRA_CONTAINER_ID);
         container = new ContainerManager(this).getContainerById(containerId);
+        logLifecycle("onCreate", containerId);
 
         // run game
         new Thread(() -> {
@@ -136,6 +141,7 @@ public class XrActivity extends MainActivity {
 
     @Override
     public synchronized void onPause() {
+        logLifecycle("onPause", null);
         xrController.unload();
         super.onPause();
     }
@@ -144,10 +150,12 @@ public class XrActivity extends MainActivity {
     public synchronized void onResume() {
         super.onResume();
         xrController = new XrController();
+        logLifecycle("onResume", null);
     }
 
     @Override
     public synchronized void onDestroy() {
+        logLifecycle("onDestroy", null);
         super.onDestroy();
         closeSession();
     }
@@ -202,6 +210,7 @@ public class XrActivity extends MainActivity {
     }
 
     public synchronized void closeSession() {
+        logLifecycle("closeSession", null);
         if (shouldRebootIn2D) {
             Intent intent = getBaseContext().getPackageManager()
                     .getLaunchIntentForPackage(getBaseContext().getPackageName());
@@ -299,6 +308,22 @@ public class XrActivity extends MainActivity {
             }
             context = ((ContextWrapper) context).getBaseContext();
         }
+    }
+
+    private void logLifecycle(String event, String containerId) {
+        String processName = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                ? Application.getProcessName()
+                : getPackageName();
+        Log.i("XrLifecycle", "event=" + event
+                + ", activity=" + getClass().getSimpleName()
+                + ", process=" + processName
+                + ", pid=" + Process.myPid()
+                + ", containerId=" + (containerId != null ? containerId : "unchanged")
+                + ", containerResolved=" + (container != null)
+                + ", rebootInXR=" + shouldRebootInXR
+                + ", rebootIn2D=" + shouldRebootIn2D
+                + ", openContainer=" + shouldOpenContainer
+                + ", steamServiceAvailable=" + SteamService.isServiceAvailable());
     }
 
     public void updateFrame(float fps, XServer xserver) {

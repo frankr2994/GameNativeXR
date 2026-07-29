@@ -342,7 +342,7 @@ development baseline before changing guest behavior or adding a game profile.
 | Rerun strict protocol parser/serializer and UDP loopback tests from `Dev-Update` | Codex | C-M | **Complete:** build, CTest, and live loopback pass at `7542aaba`; see `docs/G0U_PROTOCOL_VALIDATION.md` |
 | Rerun stereo, SBS, and AER visual-harness scenarios in Meta XR Simulator | Codex | C-H | **API/frame-loop complete:** all patterns pass 120/120 frames after the merge; operator visual capture remains open; see `docs/XR_VISUAL_HARNESS_VALIDATION.md` |
 | Audit merged renderer, activity lifecycle, audio focus, input, suspend/resume, and Steam seams for XR-specific regressions | Antigravity read-only review; Codex decision | AG-PL / C-H | **Complete:** Batch 5 reviewed; renderer route is intact, process-boundary and robustness probes are prioritized |
-| Add rate-limited Java-side logging for renderer selection, XR activity PID/lifecycle, and Steam-service availability | Codex | C-M | Logcat evidence identifies selected renderer, process, lifecycle transitions, and whether required Steam state is present |
+| Add rate-limited Java-side logging for renderer selection, XR activity PID/lifecycle, and Steam-service availability | Codex | C-M | **Implemented — build verification pending:** `docs/G0U_XR_DIAGNOSTICS.md` defines the bounded Logcat evidence and records the current local Gradle stall |
 | Run a Steam XR-process launch probe using only the user's authenticated, owned install | User + Codex | C-H | Evidence for/exclusion of an IPC design; no credentials or DRM bypass and no IPC implementation without a demonstrated failure |
 | Record the Android Gradle Plugin/compile SDK 36 warning and NDK `27.3.13750724` availability; install the pinned NDK before native rebuild work | Antigravity inventory; Codex decision | AG-FL / C-M | **Complete:** current APK build is unaffected by the absent NDK; native rebuild work is blocked until it is installed |
 
@@ -640,8 +640,10 @@ The first target is complete when:
 
 Start in this order:
 
-1. Add only the process/renderer/Steam diagnostics needed to make the first
-   Android XR launch observable, then rebuild and verify the APK.
+1. Re-run `assembleModernXrDebug` and `tools/verify-quest-apk.ps1` once the
+   local Gradle environment is responsive, then capture the documented
+   physical-Quest diagnostic Logcat slice and correlate the renderer,
+   VR-process lifecycle, and Steam availability with one Steam launch result.
 2. Keep the completed protocol and visual-harness utilities as desktop
    regression checks; rerun them after changes to their own code or SDK inputs.
 3. Verify the existing Halo-MCC-VR PCVR reference before changing its backend.
