@@ -107,10 +107,11 @@ ParseResult<HostToGuestState> ParseHostToGuest(std::string_view packet) {
     }
     std::int32_t sync = 0;
     const auto syncResult = std::from_chars(tokens[29].data(), tokens[29].data() + tokens[29].size(), sync);
-    if (syncResult.ec != std::errc{} || syncResult.ptr != tokens[29].data() + tokens[29].size()) {
+    if (syncResult.ec != std::errc{} || syncResult.ptr != tokens[29].data() + tokens[29].size() || sync < 0) {
         result.error = ParseError::InvalidSync;
         return result;
     }
+    result.state.sync = sync;
     result.state.numeric[28] = static_cast<float>(sync);
     if (!IsFlagString(tokens[30], result.state.buttons.size())) {
         result.error = ParseError::InvalidButtons;
@@ -160,7 +161,7 @@ std::string SerializeHostToGuest(const HostToGuestState& state) {
         if (index < 4 || (index >= 6 && index <= 12) || (index >= 15 && index <= 24)) stream << std::fixed << std::setprecision(3);
         else if (index == 25) stream << std::fixed << std::setprecision(4);
         else if (index == 26 || index == 27) stream << std::fixed << std::setprecision(2);
-        else if (index == 28) stream << static_cast<std::int32_t>(state.numeric[index]);
+        else if (index == 28) stream << state.sync;
         else stream << std::fixed << std::setprecision(1);
         if (index != 28) stream << state.numeric[index];
     }

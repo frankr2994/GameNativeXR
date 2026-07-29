@@ -31,6 +31,10 @@ const char* ToString(ParseError error);
 struct HostToGuestState {
     std::int32_t clientIndex = 0;
     std::array<float, 29> numeric{};
+    // Canonical integer frame-sync value. numeric[28] is retained only for
+    // compatibility with the field-order array and cannot exactly represent
+    // every int32_t value.
+    std::int32_t sync = 0;
     std::array<bool, 19> buttons{};
     bool immersive = false;
     bool sbs = false;

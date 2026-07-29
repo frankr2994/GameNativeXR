@@ -274,7 +274,7 @@ without MCC, Steam, game hooks, or signature scanning.
 |---|---|---|---|
 | Write a normative version 0.4 protocol specification from host code and packet captures | Codex | C-H | **Initial specification complete:** `docs/XR_BRIDGE_PROTOCOL.md`; units/handedness remain measured-validation items |
 | Create golden packet vectors and parser/serializer tests | Antigravity | AG-FM | **Design complete:** corpus in `ANTIGRAVITY_HANDOFFS/TASK-01-protocol-vectors`; Codex must integrate strict tests before it is treated as executable proof |
-| Implement a protocol-only mock host and x64 guest parser/serializer | Codex | C-M | **Complete:** `tools/xr-bridge-protocol` has a strict parser/serializer, vector-backed CTest coverage, and a loopback UDP fixture; malformed packets are rejected atomically |
+| Implement a protocol-only mock host and x64 guest parser/serializer | Codex | C-M | **Complete:** `tools/xr-bridge-protocol` has a strict parser/serializer, full malformed-packet edge coverage, and a loopback UDP fixture; malformed packets are rejected atomically |
 | Implement an independent x64 Windows OpenXR/D3D11 visual harness | Codex | C-H | **Complete:** `tools/xr-visual-harness` renders deterministic stereo, SBS, and AER diagnostic patterns through a two-view D3D11 OpenXR swapchain |
 | Add host diagnostics for session state, frame ID, eye selection, packets, and dropped frames | Codex | C-M | Structured, rate-limited logs, after a source-owned host seam exists |
 | Exercise the visual harness in Meta XR Simulator | Codex | C-H | **API/frame-loop scope complete:** Meta XR Simulator 205 passed stereo 120-frame and SBS/AER 30-frame runs using process-local `XR_RUNTIME_JSON`; captured/human visual acceptance and Android transport validation remain |
