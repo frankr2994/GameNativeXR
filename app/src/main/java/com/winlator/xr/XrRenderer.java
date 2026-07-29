@@ -35,7 +35,7 @@ import com.winlator.renderer.RenderableWindow;
 import com.winlator.renderer.Texture;
 import com.winlator.renderer.material.BGRMaterial;
 import com.winlator.renderer.material.ShaderMaterial;
-import com.winlator.widget.XServerView;
+import com.winlator.widget.XServerViewGL;
 import com.winlator.xr.ui.XrContentDialog;
 import com.winlator.xserver.Drawable;
 import com.winlator.xserver.XLock;
@@ -64,7 +64,7 @@ public class XrRenderer extends GLRenderer {
     private Paint paint;
 
 
-    public XrRenderer(XServerView xServerView, XServer xServer) {
+    public XrRenderer(XServerViewGL xServerView, XServer xServer) {
         super(xServerView, xServer);
     }
 

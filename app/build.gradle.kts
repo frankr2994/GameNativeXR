@@ -25,16 +25,25 @@ val keystoreProperties: Properties? = if (keystorePropertiesFile.exists()) {
 val posthogApiKey: String = project.findProperty("POSTHOG_API_KEY") as String? ?: System.getenv("POSTHOG_API_KEY") ?: ""
 val posthogHost: String = project.findProperty("POSTHOG_HOST") as String? ?: System.getenv("POSTHOG_HOST") ?: "https://us.i.posthog.com"
 
+val metaAppId: String = project.findProperty("META_APP_ID") as String? ?: System.getenv("META_APP_ID") ?: ""
+val productSku: String = project.findProperty("PRODUCT_SKU") as String? ?: System.getenv("PRODUCT_SKU") ?: ""
+
 room {
     schemaDirectory("$projectDir/schemas")
 }
 
+// Debug-only: package the repo's manifest.json so debug builds read it locally (never in release).
+val copyDebugManifest by tasks.registering(Copy::class) {
+    from(rootProject.file("manifest.json"))
+    into(layout.buildDirectory.dir("generated/debugManifest"))
+}
+
 android {
     namespace = "app.gamenative"
-    compileSdk = 35
+    compileSdk = 36
 
     // https://developer.android.com/ndk/downloads
-    ndkVersion = "22.1.7171670"
+    ndkVersion = "27.3.13750724"
 
     signingConfigs {
         create("pluvia") {
@@ -51,10 +60,13 @@ android {
         applicationId = "app.gamenative"
 
         minSdk = 26
-        targetSdk = 28
 
-        versionCode = 14
-        versionName = "0.9.2"
+        manifestPlaceholders["screenOrientation"] = "unspecified"
+        buildConfigField("boolean", "XR_BUILD", "false")
+        buildConfigField("boolean", "MODERN_XR", "false")
+
+        versionCode = 21
+        versionName = "1.1.1"
 
         buildConfigField("boolean", "GOLD", "false")
         fun secret(name: String) =
@@ -77,7 +89,8 @@ android {
             // The general container still ships 32-bit native components. The
             // Quest XR runtime is intentionally arm64-v8a-only; deployment
             // verification asserts its required native pair separately.
-            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
+            // (Note: This is now handled per-flavor below)
+            //abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
         }
 
         // Localization support - specify which languages to include
@@ -96,6 +109,7 @@ android {
             "pl",      // Polish
             "ru",      // Russian
             "ko",      // Korean
+            "ja",      // Japanese
             // TODO: Add more languages here using the ISO 639-1 locale code with regional qualifiers (e.g., "pt-rPT" for European Portuguese)
         )
 
@@ -109,6 +123,47 @@ android {
             getDefaultProguardFile("proguard-android.txt"),
             "proguard-rules.pro",
         )
+    }
+
+    flavorDimensions += "androidApi"
+    productFlavors {
+        create("legacy") {
+            dimension = "androidApi"
+            targetSdk = 28
+            ndk.abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            buildConfigField("boolean", "MODERN_ANDROID", "false")
+            buildConfigField("String", "PRELOAD_BIONIC_SO", "\"libredirect-bionic.so\"")
+        }
+        create("legacyXr") {
+            dimension = "androidApi"
+            targetSdk = 28
+            ndk.abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            buildConfigField("boolean", "MODERN_ANDROID", "false")
+            buildConfigField("String", "PRELOAD_BIONIC_SO", "\"libredirect-bionic.so\"")
+            buildConfigField("boolean", "XR_BUILD", "true")
+            manifestPlaceholders["screenOrientation"] = "landscape"
+        }
+        create("modern") {
+            dimension = "androidApi"
+            minSdk = 29
+            targetSdk = 36
+            ndk.abiFilters += listOf("arm64-v8a")
+            buildConfigField("boolean", "MODERN_ANDROID", "true")
+            buildConfigField("String", "PRELOAD_BIONIC_SO", "\"libredirect-bionic-wx.so\"")
+        }
+        create("modernXr") {
+            dimension = "androidApi"
+            minSdk = 29
+            targetSdk = 36
+            ndk.abiFilters += listOf("arm64-v8a")
+            buildConfigField("boolean", "MODERN_ANDROID", "true")
+            buildConfigField("String", "PRELOAD_BIONIC_SO", "\"libredirect-bionic-wx.so\"")
+            buildConfigField("boolean", "XR_BUILD", "true")
+            buildConfigField("boolean", "MODERN_XR", "true")
+            buildConfigField("String", "META_APP_ID", "\"$metaAppId\"")
+            buildConfigField("String", "PRODUCT_SKU", "\"$productSku\"")
+            manifestPlaceholders["screenOrientation"] = "landscape"
+        }
     }
 
     buildTypes {
@@ -177,11 +232,67 @@ android {
             isIncludeAndroidResources = true
         }
     }
+
+    lint {
+        // Locale files ship full AndroidX appcompat (abc_*) translations that aren't in the
+        // default locale. These extra translations are harmless and pre-existing; without this
+        // the release-only lintVital pass fails on 150+ ExtraTranslation errors.
+        disable += "ExtraTranslation"
+    }
     dynamicFeatures += setOf(":ubuntufs")
+
+    // Configure Assets to be used in different variants
+    sourceSets {
+        getByName("legacy") {
+            java.srcDir("src/nonXr/java")
+            assets {
+                srcDirs("src/legacy/assets", "src/main/assets")
+            }
+        }
+        getByName("legacyXr") {
+            java.srcDir("src/nonXr/java")
+            manifest.srcFile("src/legacy/AndroidManifest.xml")
+            assets {
+                srcDirs("src/legacy/assets", "src/main/assets")
+            }
+            jniLibs {
+                srcDirs("src/legacy/jniLibs")
+            }
+        }
+        getByName("modern") {
+            java.srcDir("src/nonXr/java")
+            assets {
+                srcDirs("src/modern/assets", "src/main/assets")
+            }
+        }
+        getByName("modernXr") {
+            assets {
+                srcDirs("src/modern/assets", "src/main/assets")
+            }
+            jniLibs {
+                srcDirs("src/modern/jniLibs")
+            }
+        }
+        getByName("debug") {
+            assets.srcDir(copyDebugManifest)
+        }
+    }
 
     kotlinter {
         ignoreFormatFailures  = false
     }
+
+    // externalNativeBuild {
+    //   cmake {
+    //       path = file("src/main/cpp/asurfacerenderer/CMakeLists.txt")
+    //   }
+    // }
+
+    // externalNativeBuild {
+    //    cmake {
+    //        path = file("src/main/cpp/evshim/CMakeLists.txt")
+    //    }
+    // }
 
     // xconnectorpatch is shipped as a prebuilt jniLib because our APK packaging flow
     // does not rebuild native libraries during release creation.
@@ -268,6 +379,7 @@ dependencies {
     implementation("androidx.preference:preference:1.2.1")
     implementation(files("src/main/libs/haptic_service.aar"))
     implementation(libs.bundles.winlator)
+    implementation(libs.libarchive.android)
     implementation(libs.zstd.jni) { artifact { type = "aar" } }
     implementation(libs.xz)
 
@@ -326,4 +438,7 @@ dependencies {
     implementation("com.posthog:posthog-android:3.8.0")
 
     implementation("com.auth0.android:jwtdecode:2.0.2")
+
+    "modernXrImplementation"("com.meta.horizon.platform.sdk:core-kotlin:0.2.2")
+    "modernXrImplementation"("com.meta.horizon.platform.sdk:iap-kotlin:0.2.2")
 }

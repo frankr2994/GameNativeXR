@@ -6,6 +6,7 @@ import com.winlator.core.DefaultVersion
 import com.winlator.core.WineInfo
 import com.winlator.core.WineThemeManager
 import com.winlator.fexcore.FEXCorePreset
+import com.winlator.xenvironment.components.PulseAudioComponent
 import kotlin.String
 
 data class ContainerData(
@@ -15,9 +16,13 @@ data class ContainerData(
     val graphicsDriver: String = Container.DEFAULT_GRAPHICS_DRIVER,
     val graphicsDriverVersion: String = "",
     val graphicsDriverConfig: String = "",
+    val rendererPresentMode: String = "fifo",
+    val displayRenderer: String = Container.DEFAULT_DISPLAY_RENDERER,
+    val sfCompatMode: Boolean = true,
     var dxwrapper: String = Container.DEFAULT_DXWRAPPER,
     val dxwrapperConfig: String = "",
     val audioDriver: String = Container.DEFAULT_AUDIO_DRIVER,
+    val pulseaudioLowLatency: Boolean = false,
     val wincomponents: String = Container.DEFAULT_WINCOMPONENTS,
     val drives: String = Container.DEFAULT_DRIVES,
     val execArgs: String = "",
@@ -25,6 +30,7 @@ data class ContainerData(
     val installPath: String = "",
     val showFPS: Boolean = false,
     val launchRealSteam: Boolean = false,
+    val launchBionicSteam: Boolean = false,
     val allowSteamUpdates: Boolean = false,
     val steamType: String = "normal",
     val cpuList: String = Container.getFallbackCPUList(),
@@ -72,12 +78,14 @@ data class ContainerData(
     val dinputMapperType: Byte = 1,
     /** Disable external mouse input **/
     val disableMouseInput: Boolean = false,
-    /** Touchscreen mode **/
-    val touchscreenMode: Boolean = false,
+    /** Touchscreen mode (defaults on for XR builds) **/
+    val touchscreenMode: Boolean = app.gamenative.BuildConfig.XR_BUILD,
     /** Shooter mode (auto-replace sticks with dynamic joysticks) **/
     val shooterMode: Boolean = true,
     /** Serialised JSON gesture configuration (used when touchscreenMode is true) **/
     val gestureConfig: String = "",
+    /** Serialised JSON shooter mode configuration (used when shooterMode is true) **/
+    val shooterConfig: String = "",
     /** External display input handling: off|touchpad|keyboard|hybrid **/
     val externalDisplayMode: String = Container.DEFAULT_EXTERNAL_DISPLAY_MODE,
     /** Swap game/input between internal and external displays **/
@@ -87,6 +95,7 @@ data class ContainerData(
     val forceDlc: Boolean = false,
     val localSavesOnly: Boolean = false,
     val steamOfflineMode: Boolean = false,
+    val epicOfflineMode: Boolean = false,
     val useLegacyDRM: Boolean = false,
     val unpackFiles: Boolean = false,
     val suspendPolicy: String = Container.SUSPEND_POLICY_MANUAL,
@@ -126,9 +135,13 @@ data class ContainerData(
                     "graphicsDriver" to state.graphicsDriver,
                     "graphicsDriverVersion" to state.graphicsDriverVersion,
                     "graphicsDriverConfig" to state.graphicsDriverConfig,
+                    "rendererPresentMode" to state.rendererPresentMode,
+                    "displayRenderer" to state.displayRenderer,
+                    "sfCompatMode" to state.sfCompatMode,
                     "dxwrapper" to state.dxwrapper,
                     "dxwrapperConfig" to state.dxwrapperConfig,
                     "audioDriver" to state.audioDriver,
+                    "pulseaudioLowLatency" to state.pulseaudioLowLatency,
                     "wincomponents" to state.wincomponents,
                     "drives" to state.drives,
                     "execArgs" to state.execArgs,
@@ -136,6 +149,7 @@ data class ContainerData(
                     "installPath" to state.installPath,
                     "showFPS" to state.showFPS,
                     "launchRealSteam" to state.launchRealSteam,
+                    "launchBionicSteam" to state.launchBionicSteam,
                     "allowSteamUpdates" to state.allowSteamUpdates,
                     "steamType" to state.steamType,
                     "cpuList" to state.cpuList,
@@ -164,6 +178,7 @@ data class ContainerData(
                     "touchscreenMode" to state.touchscreenMode,
                     "shooterMode" to state.shooterMode,
                     "gestureConfig" to state.gestureConfig,
+                    "shooterConfig" to state.shooterConfig,
                     "externalDisplayMode" to state.externalDisplayMode,
                     "externalDisplaySwap" to state.externalDisplaySwap,
                     "useDRI3" to state.useDRI3,
@@ -171,6 +186,7 @@ data class ContainerData(
                     "forceDlc" to state.forceDlc,
                     "localSavesOnly" to state.localSavesOnly,
                     "steamOfflineMode" to state.steamOfflineMode,
+                    "epicOfflineMode" to state.epicOfflineMode,
                     "useLegacyDRM" to state.useLegacyDRM,
                     "unpackFiles" to state.unpackFiles,
                     "suspendPolicy" to state.suspendPolicy,
@@ -205,9 +221,13 @@ data class ContainerData(
                     graphicsDriver = savedMap["graphicsDriver"] as String,
                     graphicsDriverVersion = savedMap["graphicsDriverVersion"] as String,
                     graphicsDriverConfig = (savedMap["graphicsDriverConfig"] as? String) ?: "",
+                    rendererPresentMode = (savedMap["rendererPresentMode"] as? String) ?: "fifo",
+                    displayRenderer = (savedMap["displayRenderer"] as? String) ?: "vulkan",
+                    sfCompatMode = (savedMap["sfCompatMode"] as? Boolean) ?: true,
                     dxwrapper = savedMap["dxwrapper"] as String,
                     dxwrapperConfig = savedMap["dxwrapperConfig"] as String,
                     audioDriver = savedMap["audioDriver"] as String,
+                    pulseaudioLowLatency = (savedMap["pulseaudioLowLatency"] as? Boolean) ?: false,
                     wincomponents = savedMap["wincomponents"] as String,
                     drives = savedMap["drives"] as String,
                     execArgs = savedMap["execArgs"] as String,
@@ -215,6 +235,7 @@ data class ContainerData(
                     installPath = savedMap["installPath"] as String,
                     showFPS = savedMap["showFPS"] as Boolean,
                     launchRealSteam = savedMap["launchRealSteam"] as Boolean,
+                    launchBionicSteam = (savedMap["launchBionicSteam"] as? Boolean) ?: false,
                     allowSteamUpdates = savedMap["allowSteamUpdates"] as Boolean,
                     steamType = (savedMap["steamType"] as? String) ?: "normal",
                     cpuList = savedMap["cpuList"] as String,
@@ -243,6 +264,7 @@ data class ContainerData(
                     touchscreenMode = savedMap["touchscreenMode"] as Boolean,
                     shooterMode = (savedMap["shooterMode"] as? Boolean) ?: true,
                     gestureConfig = (savedMap["gestureConfig"] as? String) ?: "",
+                    shooterConfig = (savedMap["shooterConfig"] as? String) ?: "",
                     externalDisplayMode = (savedMap["externalDisplayMode"] as? String) ?: Container.DEFAULT_EXTERNAL_DISPLAY_MODE,
                     externalDisplaySwap = (savedMap["externalDisplaySwap"] as? Boolean) ?: false,
                     useDRI3 = (savedMap["useDRI3"] as? Boolean) ?: true,
@@ -250,6 +272,7 @@ data class ContainerData(
                     forceDlc = (savedMap["forceDlc"] as? Boolean) ?: false,
                     localSavesOnly = (savedMap["localSavesOnly"] as? Boolean) ?: false,
                     steamOfflineMode = (savedMap["steamOfflineMode"] as? Boolean) ?: false,
+                    epicOfflineMode = (savedMap["epicOfflineMode"] as? Boolean) ?: false,
                     useLegacyDRM = (savedMap["useLegacyDRM"] as? Boolean) ?: false,
                     unpackFiles = (savedMap["unpackFiles"] as? Boolean) ?: false,
                     suspendPolicy = (savedMap["suspendPolicy"] as? String) ?: Container.SUSPEND_POLICY_MANUAL,
