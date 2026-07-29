@@ -2,24 +2,16 @@
 
 ### Introduction
 
-GameNativeXR is an unofficial client for Steam, GOG, Epic Games, and Amazon Games designed specifically for XR headsets. It brings traditional PC gaming into immersive setup, allowing players to experience their game libraries in entirely new ways. Beyond basic launcher functionality, GameNativeXR enhances compatibility and immersion through advanced features such as stereoscopic 3D rendering, native XR controller support and for some games VR integration.
-
-The project aims to bridge the gap between conventional desktop gaming platforms and modern XR hardware, making it possible to enjoy both flat-screen and immersive experiences inside virtual reality. By combining game library management with XR-focused enhancements, GameNativeXR creates a more seamless and engaging way to access, launch, and play games directly from VR and mixed reality headsets.
+GameNativeXR is an active-development fork of GameNative for standalone XR headsets. It combines GameNative's local PC-game compatibility stack and library support with an XR host, stereoscopic presentation, and XR controller integration. The goal is to make supported games playable on the headset without PC streaming while keeping the project aligned with the current GameNative platform baseline.
 
 ### Goal
 
-The goal of this fork is to refine, expand, and polish the overall XR experience while working toward eventually contributing these improvements back upstream to the main project. By developing features independently in a dedicated fork, new XR functionality can evolve more rapidly without being constrained by the slower pace often required for stable upstream integration.
-
-This approach allows experimental and early-stage XR features to reach enthusiasts, developers, and testers much sooner, helping to gather real-world feedback and iterate quickly on usability, performance, and compatibility. The fork serves as a proving ground for immersive technologies such as enhanced VR integration, advanced controller interaction, stereoscopic rendering improvements, spatial user interfaces, and other XR-focused capabilities.
-
-At the same time, maintaining compatibility and long-term sustainability remains an important priority. The intention is not to permanently fragment the project, but rather to mature these XR enhancements to a level where they can be cleanly integrated upstream, benefiting the broader community while helping push the ecosystem toward better native XR support overall.
+The fork is deliberately upstream-oriented: GameNative updates are merged as reviewable history, and XR-specific changes stay isolated where possible. Current work focuses on a dependable Quest XR runtime path, input, presentation, compatibility profiles, and repeatable validation. Compatibility varies by game, device, graphics driver, and container configuration; this is development software, not a guarantee that every PC title will run.
 
 ### Status
-This fork is no longer under active development, as there are other efforts to add XR support directly to the upstream GameNative repository. Due to VR community demand, we decided to release this early version to bridge the gap until the upstream implementation is ready.
+`Dev-Update` is the active integration branch. It contains the GameNative upstream merge at `9e9bcdc5` and preserves the Quest XR build variants. The validated build target is `modernXrDebug`.
 
-Please note the following limitations:
-* GameNative and GameNativeXR cannot be installed on the same device at the same time.
-* XR games do not launch automatically. To start a game, navigate to its installation directory on the A:\ drive and run the game's .exe file manually.
+Current renderer note: XR sessions are intentionally routed through the OpenGL X-server view because the XR renderer consumes its shared EGL context. Non-XR containers can continue to use the upstream Vulkan renderer.
 
 ---
 
@@ -108,7 +100,7 @@ Want to help out? Message us to get into the **#development** channel on [Discor
    ./gradlew jar :javasteam-depotdownloader:jar
    ```
    GameNativeXR automatically uses those sibling artifacts. To use another checkout location, pass `-PjavasteamDir=/path/to/JavaSteam` to Gradle.
-3. Build the debug APK with `./gradlew assembleDebug`. On constrained or sandboxed Windows environments where the Kotlin daemon cache is unavailable, add `-Pkotlin.compiler.execution.strategy=in-process`.
+3. Build the Quest XR debug APK with `./gradlew assembleModernXrDebug`. On constrained or sandboxed Windows environments where the Kotlin daemon cache is unavailable, add `-Pkotlin.compiler.execution.strategy=in-process`.
 4. Verify the generated Quest APK with `./tools/verify-quest-apk.ps1`. See [Quest APK verification](docs/QUEST_APK_VALIDATION.md) for optional ADB install/launch commands.
 5. **SteamGridDB API Key (Optional):** To enable automatic fetching of game images for Custom Games, add your SteamGridDB API key to `local.properties`:
    ```properties

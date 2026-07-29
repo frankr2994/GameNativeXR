@@ -1814,11 +1814,13 @@ fun XServerScreen(
                     ?.getComponent<XServerComponent>(XServerComponent::class.java)
                     ?.xServer
             val xServerToUse = existingXServer ?: XServer(ScreenInfo(xServerState.value.screenSize), usrGlibc)
-            // VirGL containers always need GL (shared EGL context for the
-            // VirGL passthrough). Default to the legacy GL renderer for all
-            // other containers as well. Uncheck the per-container useLegacyRenderer
-            // setting to switch to the Vulkan renderer.
-            val useGLRenderer = container.graphicsDriver == "virgl" || container.displayRenderer.equals("gl", true)
+            // XR rendering currently consumes the X server through the shared
+            // OpenGL context created by XServerViewGL. Keep this route even
+            // when the container's non-XR renderer preference is Vulkan.
+            // VirGL also requires GL for its shared EGL context.
+            val useGLRenderer = XrActivity.isEnabled() ||
+                    container.graphicsDriver == "virgl" ||
+                    container.displayRenderer.equals("gl", true)
             val xServerViewInstance: XServerRendererView = if (useGLRenderer) {
                 XServerViewGL(context, xServerToUse)
             } else {

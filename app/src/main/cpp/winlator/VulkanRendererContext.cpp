@@ -30,7 +30,7 @@ VulkanRendererContext::~VulkanRendererContext() {
     vk_.DeviceWaitIdle(device);
     for (auto& [id, wt] : texMap) destroyWinTex(wt);
     texMap.clear();
-    
+
     for (auto& wt : deleteQueue) {
         if (wt.ds   != VK_NULL_HANDLE) vk_.FreeDescriptorSets(device, winTexPool, 1, &wt.ds);
         if (wt.view != VK_NULL_HANDLE) vk_.DestroyImageView(device, wt.view, nullptr);
@@ -40,7 +40,7 @@ VulkanRendererContext::~VulkanRendererContext() {
     }
     deleteQueue.clear();
     cleanupSwapchain(); cleanupCursorTex();
-    
+
     vk_.DestroySampler(device, sampler, nullptr);
     vk_.DestroyDescriptorPool(device, winTexPool, nullptr);
     vk_.DestroyPipeline(device, pipeline, nullptr);
