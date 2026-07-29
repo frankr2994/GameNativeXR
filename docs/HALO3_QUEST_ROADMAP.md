@@ -1,10 +1,10 @@
 # Halo 3 on Standalone Quest: Engineering Roadmap
 
-Status: planning baseline  
-Target branch: `Dev`  
-First game: Steam Halo: The Master Chief Collection, Halo 3 campaign  
-Primary device: Meta Quest 3  
-Stretch device: Meta Quest 2
+Status: planning baseline
+Target branch: `Dev`
+First game: Steam Halo: The Master Chief Collection, Halo 3 campaign
+Available development device: Meta Quest 2
+Additional validation target: Meta Quest 3 when hardware is available
 
 ## 1. Objective
 
@@ -88,12 +88,12 @@ must not hide a basic game-emulation failure.
 | Gate | Required proof | Stop condition |
 |---|---|---|
 | G0: Reproducible baselines | GameNativeXR APK and Halo-MCC-VR Windows build are reproducible from pinned commits | Missing source, toolchain, or undocumented binary prevents reproduction |
-| G1: Flat Halo 3 | Quest 3 launches owned MCC/Halo 3 without anti-cheat and completes 30 minutes of campaign in a flat window | OOM, unsupported instruction, DRM/auth failure, or unusable sustained frame rate |
+| G1: Flat Halo 3 | The available Quest 2 launches owned MCC/Halo 3 without anti-cheat and completes 30 minutes of campaign in a flat window | OOM, unsupported instruction, DRM/auth failure, or unusable sustained frame rate; a measured Quest 2 hardware ceiling requires Quest 3 access before work can resume |
 | G2: XR bridge probe | A tiny Windows x64 probe receives Quest poses/controllers, drives SBS and AER test patterns, and returns mode/FOV/haptics | Protocol is unstable or eye images require CPU readback |
 | G3: Halo stereo | Halo 3 renders geometrically correct left/right eyes in-headset while the PCVR backend still works | Per-eye hooks fail under Wine/Box64 or image transport is too expensive |
 | G4: Playable controls | Campaign, menus, vehicles, weapons, recenter, pause, and haptics are usable | Input latency or coordinate conversion makes sustained play impractical |
-| G5: Timing and stability | Correct predicted pose/timing, no systematic eye reversal or judder, and a 45-minute Quest 3 thermal soak | Native XR host cannot be source-owned or timing cannot be made deterministic |
-| G6: Quest 2 assessment | A measured Quest 2 run determines supported, experimental, or unsupported status | Memory/thermal limits remain outside a playable envelope |
+| G5: Quest 2 timing and stability | Correct predicted pose/timing, no systematic eye reversal or judder, and a 45-minute Quest 2 thermal soak | Native XR host cannot be source-owned or timing cannot be made deterministic |
+| G6: Quest 3 validation | A measured physical Quest 3 run confirms compatibility and establishes its quality/performance preset | Quest 3 support remains unclaimed until hardware is available |
 | G7: Release candidate | Clean install, owned-game setup, rollback, diagnostics bundle, notices, and physical-device acceptance | Game files/DRM are modified or release cannot be reproduced |
 
 ## 4. AI Model Policy
@@ -172,10 +172,11 @@ integration.
 
 Acceptance:
 
-- Quest 3 reaches a Halo 3 campaign mission, saves/loads, and remains stable for
+- Quest 2 reaches a Halo 3 campaign mission, saves/loads, and remains stable for
   30 minutes in a flat GameNativeXR window.
 - The run has enough memory and GPU margin to justify adding two-eye rendering.
-- Quest 2 is not optimized yet; it receives only an early memory smoke test.
+- A failure conclusively caused by Quest 2's hardware ceiling pauses this gate
+  until a physical Quest 3 is available; it does not disprove the architecture.
 
 Gate: G1.
 
@@ -191,7 +192,7 @@ without MCC, Steam, game hooks, or signature scanning.
 | Build a tiny x64 Windows D3D11 bridge probe | Antigravity in isolated worktree | AG-FH | Pose/controller viewer plus SBS/AER stereo patterns |
 | Add host diagnostics for session state, frame ID, eye selection, packets, and dropped frames | Codex | C-M | Structured, rate-limited logs |
 | Exercise the probe in Meta XR Simulator | Antigravity test script; Codex integration | AG-FM / C-M | Repeatable simulator scenario |
-| Confirm physical-device eye order, scale, FOV, pose direction, controls, and haptics | User + Codex | C-H for failures | Quest 3 acceptance capture |
+| Confirm physical-device eye order, scale, FOV, pose direction, controls, and haptics | User + Codex | C-H for failures | Quest 2 acceptance capture, repeated later on Quest 3 |
 | Prove the image path avoids CPU readback | Codex + graphics profiler | C-H | GPU trace and frame-time evidence |
 
 Start with SBS for correctness. Evaluate AER after SBS works; AER may reduce
@@ -238,7 +239,7 @@ submit.
 Acceptance:
 
 - world scale, IPD, FOV, eye order, depth, menus, cutscenes, scopes, and
-  first-person models are visually correct on Quest 3;
+  first-person models are visually correct on Quest 2;
 - there is no per-frame CPU readback;
 - PCVR remains functional.
 
@@ -286,15 +287,16 @@ Goal: reach a stable, documented operating envelope.
 | Task | Owner | Model | Deliverable |
 |---|---|---|---|
 | Automate collection and normalization of frame-time, memory, thermal, clock, translator, DXVK, and XR metrics | Antigravity | AG-FM | Benchmark bundle and compact reports |
-| Establish Quest 3 presets for resolution, refresh, graphics, CPU affinity, translator, and background services | Codex | C-H | Quality/performance presets |
+| Establish Quest 2 presets for resolution, refresh, graphics, CPU affinity, translator, and background services | Codex | C-H | Quality/performance presets |
 | Optimize only the largest measured bottleneck per experiment | Codex | C-H; C-XH only after repeated failure | Reviewable, evidence-backed changes |
 | Use Pro-high for independent postmortems at major plateaus, not routine runs | Antigravity | AG-PH | Ranked hypotheses tied to traces |
 | Run 45-minute campaign and thermal-soak scenarios | User/device automation; Antigravity summarizes | AG-FL | Stability report |
-| Repeat with Quest 2 using Halo 3-only content, low resolution, reduced services, and optional AER | Codex | C-H | Supported/experimental/unsupported decision |
+| Repeat the full matrix on Quest 3 when hardware becomes available | Codex | C-H | Quest 3 preset and support decision |
 
-The Quest 3 preset is the release target. Quest 2 support is conditional on
-measured memory and thermal viability and must not hold back the Quest 3
-vertical slice.
+Quest 2 is the immediate development and stress-test target because it is the
+available physical device. Quest 3 must still be tested before the project
+claims Quest 3 support; simulator results cannot substitute for its performance,
+thermal, or device-lifecycle validation.
 
 Gates: G5 and G6.
 
@@ -317,8 +319,8 @@ Goal: produce a reproducible Halo 3 standalone release candidate.
 
 Test matrix:
 
-- Quest 3 physical device: required;
-- Quest 2 physical device: assessment/stretch;
+- Quest 2 physical device: required for the initial vertical slice;
+- Quest 3 physical device: required before claiming Quest 3 support;
 - Meta XR Simulator: deterministic automation only;
 - PC OpenXR/SteamVR: regression reference;
 - clean install, update, rollback, app restart, headset sleep/wake;
@@ -357,14 +359,14 @@ Only begin after G7.
 
 | Failure | First response | Escalation |
 |---|---|---|
-| MCC cannot reach gameplay on Quest 3 | Diagnose CPU instruction, memory, Steam/auth, DXVK, or translator separately | Stop XR work until flat-game G1 passes |
+| MCC cannot reach gameplay on Quest 2 | Diagnose CPU instruction, memory, Steam/auth, DXVK, or translator separately | Stop XR work until G1 passes on Quest 2 or evidence shows that Quest 3 hardware is required |
 | `CreateRemoteThread` injection fails under Wine/Box64 | Use Wine DLL override, bootstrap/proxy DLL, or supported preload path | Use Halo tools only if module/version behavior also changed |
 | Halo signatures fail | Record exact MCC/Halo DLL hashes and scan results | Request matching Halo tools/symbol evidence; never guess offsets |
 | SBS requires CPU copies | Trace the graphics path and remove the copy | Prototype Vulkan external-memory sharing |
 | AER causes judder or eye mismatch | Keep SBS as the correctness path | Use AER only as an explicit experimental preset |
 | Current `libxr.so` cannot be sourced | Reimplement the required host behavior from official Android OpenXR samples | Do not ship a growing feature set on an unmaintainable opaque binary |
 | UDP causes measurable stale poses/loss | Add sequence/timestamp telemetry | Move the data plane to shared memory while retaining a control socket |
-| Quest 2 runs out of memory | Remove unnecessary MCC content/services and lower eye surface cost | Mark Quest 2 experimental or unsupported; do not weaken Quest 3 |
+| Quest 2 runs out of memory | Remove unnecessary MCC content/services and lower eye surface cost | If the limit is conclusively hardware-bound, pause G1 until Quest 3 can be tested |
 | Steam client/auth is the limiting factor | Use supported GameNative Steam paths and legitimate login/offline behavior | Do not bypass ownership or DRM |
 
 ## 7. Tooling
@@ -378,7 +380,8 @@ Only begin after G7.
 - CMake 3.24+ and Ninja.
 - Visual Studio 2022 Desktop C++ workload, current Windows SDK, C++20 tools, and
   FXC/D3D compiler components.
-- ADB, USB debugging, and a physical Quest 3.
+- ADB, USB debugging, and the available physical Quest 2.
+- Access to a physical Quest 3 before claiming Quest 3 compatibility.
 - Meta XR Simulator and Meta Quest developer tooling.
 - Git LFS only if a later dependency actually requires it.
 
@@ -426,15 +429,15 @@ The first target is complete when:
 1. A clean `Dev` checkout builds a source-accountable GameNativeXR APK.
 2. The user can configure a legitimately owned Halo 3 installation without
    anti-cheat or modified game binaries.
-3. Halo 3 launches directly on Quest 3 and reaches campaign gameplay.
+3. Halo 3 launches directly on Quest 2 and reaches campaign gameplay.
 4. Head and hand tracking, controls, menus, haptics, stereoscopic rendering,
    FOV, scale, and recenter behavior are usable.
 5. The existing Halo-MCC-VR PCVR backend still passes its reference checks.
-6. A 45-minute physical Quest 3 run has no crash, runaway memory, systematic
+6. A 45-minute physical Quest 2 run has no crash, runaway memory, systematic
    eye mismatch, or undocumented thermal failure.
 7. Install, update, rollback, logs, known limitations, licenses, and source
    instructions are documented.
-8. Quest 2 has an honest measured support classification.
+8. Quest 3 is separately validated before Quest 3 support is claimed.
 
 ## 10. First Execution Package
 
@@ -443,12 +446,12 @@ Start in this order:
 1. Complete the environment/provenance manifest and build both unmodified
    projects.
 2. Verify the Halo-MCC-VR PCVR reference.
-3. Attempt G1 on Quest 3 with a flat Halo 3 window.
+3. Attempt G1 on Quest 2 with a flat Halo 3 window.
 4. In parallel, specify protocol 0.4 and build the standalone bridge probe.
 5. Do not refactor Halo-MCC-VR or replace `libxr.so` until G1 evidence exists,
    unless missing `libxr.so` source blocks a reproducible release baseline.
 
 The first request to the user should be the owned MCC/Halo 3 install location,
-Steam build ID, relevant executable/DLL hashes, Quest 3 connection, and the
+Steam build ID, relevant executable/DLL hashes, Quest 2 connection, and the
 output of the baseline toolchain manifest. Halo tools are not needed until a
 specific hook or signature failure is observed.
