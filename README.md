@@ -61,7 +61,8 @@ You can support GameNative on Ko-fi at https://ko-fi.com/gamenative
    ```
    GameNativeXR automatically uses those sibling artifacts. To use another checkout location, pass `-PjavasteamDir=/path/to/JavaSteam` to Gradle.
 3. Build the debug APK with `./gradlew assembleDebug`. On constrained or sandboxed Windows environments where the Kotlin daemon cache is unavailable, add `-Pkotlin.compiler.execution.strategy=in-process`.
-4. **SteamGridDB API Key (Optional):** To enable automatic fetching of game images for Custom Games, add your SteamGridDB API key to `local.properties`:
+4. Verify the generated Quest APK with `./tools/verify-quest-apk.ps1`. See [Quest APK verification](docs/QUEST_APK_VALIDATION.md) for optional ADB install/launch commands.
+5. **SteamGridDB API Key (Optional):** To enable automatic fetching of game images for Custom Games, add your SteamGridDB API key to `local.properties`:
    ```
    STEAMGRIDDB_API_KEY=your_api_key_here
    ```

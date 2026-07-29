@@ -176,6 +176,7 @@ Goal: establish known-good PCVR and Android baselines before changing behavior.
 | Record commit, submodule, binary, SDK, NDK, JDK, CMake, compiler, Wine, Box64/FEX, DXVK, and device versions | Antigravity | AG-FL | Machine-readable environment manifest and setup checklist |
 | Add project-specific agent/build guidance without overriding Halo-MCC-VR's existing safety rules | Codex | C-M | Concise `AGENTS.md`/build documentation |
 | Build the fork's unmodified `Dev` APK | Codex | C-M | **Complete:** source-accountable debug APK; local GameNative JavaSteam fallback documented in `67d5e742` |
+| Verify APK identity and prepare an explicit Quest deployment path | Codex | C-M | **Complete:** `tools/verify-quest-apk.ps1` verifies package, ABI, Quest manifest entries, signing, hash, and optional ADB install/launch |
 | Build unmodified Halo-MCC-VR on Windows x64 | Codex + Rider | C-M | DLL, launcher, tests, and exact commands |
 | Verify Halo 3 PCVR behavior on the existing supported PC path | User + Codex | C-H for failures only | Reference logs/config and headset acceptance notes |
 | Audit licenses and provenance of packaged native binaries, especially `libxr.so` | Antigravity review, Codex decision | AG-PL / C-H | Source/provenance ledger and blockers |
