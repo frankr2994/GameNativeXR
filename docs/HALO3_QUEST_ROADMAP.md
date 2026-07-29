@@ -138,6 +138,31 @@ artifacts remain in `F:\QuestVR\ANTIGRAVITY_HANDOFFS\BATCH-02-*`:
   refresh-rate criteria, network thresholds, and storage mappings require
   Codex review before execution.
 
+The five Antigravity Batch 3 handoffs are also complete and reviewed. Their
+artifacts remain in `F:\QuestVR\ANTIGRAVITY_HANDOFFS\BATCH-03-*`:
+
+- The Android lifecycle audit confirms the unsynchronized Java `float[]` input
+  path, opaque native session handling, and aggressive process shutdown risk.
+  The handoff's `/tmp/xr/version` shorthand must be read as the source path
+  `/data/data/app.gamenative/files/imagefs/tmp/xr/version`.
+- The protocol mock review found no implementation blocker. Its high-severity
+  sender-address item is a compatibility nuance, not a demonstrated failure;
+  the loopback fixture's reply-to-sender behavior is appropriate for its test
+  role. Missing invalid-character, non-ASCII, empty-packet, sync-boundary, and
+  guest-serialization tests remain follow-up coverage.
+- The Android packaging audit confirms that XR native libraries are prebuilt,
+  loaded in `:vr_process`, and currently arm64-only even though the Gradle ABI
+  filter also names `armeabi-v7a`. APK verification does not yet assert the
+  presence and hashes of the specific XR `.so` entries. This is a packaging
+  hardening task, not evidence that the APK runs on a Quest.
+- The simulator visual specification is useful for operator acceptance, and
+  its process-local runtime guardrail has been exercised. Its proposed
+  top-left frame-sync pixel and true AER buffer-update checks are not present
+  in the current harness; the tracked validation record documents this limit.
+- The Halo 3 evidence contract is ready for use when the user supplies owned
+  MCC installation evidence. It does not establish an executable path, AppID,
+  mod hash, or Quest performance result by itself.
+
 ## 3. Program Gates
 
 Work must stop at a failed gate until the failure is understood. Later XR work
@@ -209,6 +234,7 @@ Goal: establish known-good PCVR and Android baselines before changing behavior.
 | Add project-specific agent/build guidance without overriding Halo-MCC-VR's existing safety rules | Codex | C-M | Concise `AGENTS.md`/build documentation |
 | Build the fork's unmodified `Dev` APK | Codex | C-M | **Complete:** source-accountable debug APK; local GameNative JavaSteam fallback documented in `67d5e742` |
 | Verify APK identity and prepare an explicit Quest deployment path | Codex | C-M | **Complete:** `tools/verify-quest-apk.ps1` verifies package, ABI, Quest manifest entries, signing, hash, and optional ADB install/launch |
+| Verify required XR native entries and reconcile ABI declarations | Codex | C-M | **Next hardening task:** assert `libxr.so`/OpenXR loader APK entries and hashes, then decide whether the `armeabi-v7a` filter should remain |
 | Build unmodified Halo-MCC-VR on Windows x64 | Codex + Rider | C-M | **Complete:** commit `ba1407a`; `cmake --preset release`, `cmake --build --preset release --parallel 1`, and `ctest --preset release` pass |
 | Verify Halo 3 PCVR behavior on the existing supported PC path | User + Codex | C-H for failures only | Reference logs/config and headset acceptance notes |
 | Audit licenses and provenance of packaged native binaries, especially `libxr.so` | Antigravity review, Codex decision | AG-PL / C-H | **Evidence inventory complete:** SHA-256 and historical attribution recorded; exact source/license confirmation remains a release blocker |
