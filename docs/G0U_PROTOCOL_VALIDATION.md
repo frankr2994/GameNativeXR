@@ -1,7 +1,7 @@
 # G0U Protocol Validation
 
-Date: 2026-07-29  
-Repository: GameNativeXR `Dev-Update`  
+Date: 2026-07-29
+Repository: GameNativeXR `Dev-Update`
 Commit under test: `7542aaba`
 
 ## Scope
