@@ -115,6 +115,29 @@ OpenXR/D3D11 visual harness, but it cannot prove the Android host's XServer
 frame-sync/image path. APK lifecycle, performance, thermals, and headset
 acceptance require the physical Quest 2.
 
+### Batch 2 handoff review
+
+The five Antigravity Batch 2 handoffs are complete and reviewed. Their
+artifacts remain in `F:\QuestVR\ANTIGRAVITY_HANDOFFS\BATCH-02-*`:
+
+- The `libxr.so` inventory confirms the recorded SHA-256 and identifies the
+  historical `winlatorxr_cats_11` attribution, OpenXR-related strings, and a
+  missing source/license trail. This is a release and redistribution blocker,
+  but the handoff's copyleft conclusion is a risk requiring exact upstream
+  license/source confirmation, not a final legal determination.
+- The Meta XR Simulator matrix confirms the useful boundary: Windows
+  OpenXR/D3D11 presentation and protocol mocks are testable there; Android
+  JNI, Quest haptics, device timing, and Wi-Fi behavior are not.
+- The Halo seam map identifies `src/dll/vr.h` as the likely future backend
+  boundary. It is design input only; the PCVR backend remains untouched until
+  the roadmap gates authorize refactoring.
+- The GameNative profile draft is non-binding. MCC AppID, executable path,
+  launch arguments, save paths, and performance values still require evidence
+  from the user's owned installation and Quest runs.
+- The Quest 2 runbook is an operator draft. Its suggested ADB commands,
+  refresh-rate criteria, network thresholds, and storage mappings require
+  Codex review before execution.
+
 ## 3. Program Gates
 
 Work must stop at a failed gate until the failure is understood. Later XR work
@@ -188,7 +211,7 @@ Goal: establish known-good PCVR and Android baselines before changing behavior.
 | Verify APK identity and prepare an explicit Quest deployment path | Codex | C-M | **Complete:** `tools/verify-quest-apk.ps1` verifies package, ABI, Quest manifest entries, signing, hash, and optional ADB install/launch |
 | Build unmodified Halo-MCC-VR on Windows x64 | Codex + Rider | C-M | **Complete:** commit `ba1407a`; `cmake --preset release`, `cmake --build --preset release --parallel 1`, and `ctest --preset release` pass |
 | Verify Halo 3 PCVR behavior on the existing supported PC path | User + Codex | C-H for failures only | Reference logs/config and headset acceptance notes |
-| Audit licenses and provenance of packaged native binaries, especially `libxr.so` | Antigravity review, Codex decision | AG-PL / C-H | **In progress:** binary inventory completed; source/provenance ledger remains a release blocker |
+| Audit licenses and provenance of packaged native binaries, especially `libxr.so` | Antigravity review, Codex decision | AG-PL / C-H | **Evidence inventory complete:** SHA-256 and historical attribution recorded; exact source/license confirmation remains a release blocker |
 
 Gate: G0.
 
@@ -199,7 +222,7 @@ integration.
 
 | Task | Owner | Model | Deliverable |
 |---|---|---|---|
-| Create a Halo 3-only GameNative profile with conservative memory, graphics, and CPU settings | Codex | C-H | Versioned profile; no game binaries |
+| Create a Halo 3-only GameNative profile with conservative memory, graphics, and CPU settings | Codex | C-H | **Prepared:** non-binding schema/inventory in the Batch 2 handoff; production values wait for owned MCC install evidence |
 | Install only user-owned MCC components required for Halo 3 and launch without anti-cheat | User provides files/auth; Codex automates profile | C-M | Repeatable launch recipe |
 | Test the existing launcher/injection path under Wine/Box64 | Codex | C-H | Capability matrix for process creation, remote injection, hooks, and Steam presence |
 | If remote injection fails, test Wine-supported DLL loading or a proxy/bootstrap DLL | Codex | C-H | Reversible injection path preserving PCVR launcher |
@@ -246,7 +269,7 @@ state.
 | Task | Owner | Model | Deliverable |
 |---|---|---|---|
 | Define an internal backend contract for lifecycle, frame timing, views, actions, haptics, and eye targets | Codex | C-H | Architecture decision and interface |
-| Independently review the seam against OpenXR ordering and Halo timing invariants | Antigravity | AG-PH | Risk review; no concurrent edits |
+| Independently review the seam against OpenXR ordering and Halo timing invariants | Antigravity | AG-PH | **Complete as design input:** Batch 2 seam map identifies `src/dll/vr.h`; refactor remains gated on G1/G2 evidence |
 | Move current OpenXR behavior behind `SteamOpenXRBackend` with no functional change | Codex + Rider | C-H | PCVR regression-safe refactor |
 | Implement `GameNativeXrBackend` using the proven bridge library | Codex | C-H | Runtime-selectable backend |
 | Keep Halo 3 as the only standalone target while preserving dormant ODST/Reach code | Codex | C-M | Build/config isolation, no destructive cleanup |
