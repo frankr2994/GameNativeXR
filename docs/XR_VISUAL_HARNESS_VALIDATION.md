@@ -66,3 +66,49 @@ the Meta XR Simulator API path.
 They do not yet prove that an operator saw the expected colors, crosshairs,
 frame bits, eye order, or absence of visual artifacts. A captured simulator
 image or witnessed visual acceptance run is still required for that claim.
+
+## Post-upstream regression
+
+Date: 2026-07-29
+
+The harness was rebuilt and rerun from GameNativeXR `Dev-Update` commit
+`bd4863dc` after the GameNative upstream merge and XR renderer-routing fix.
+The pinned OpenXR-SDK-Source remained at
+`5267613edf3d937e3d77556a106a65c2f82b25c6`.
+
+The Release x64 build and `xr_visual_harness_self_test` passed. Meta XR
+Simulator runs used the same process-local runtime manifest:
+
+```powershell
+$env:XR_RUNTIME_JSON='E:\Program Files\MetaXRSimulator\v205.0\meta_openxr_simulator.json'
+```
+
+| Pattern | Requested frames | Rendered frames | Process result |
+|---|---:|---:|---|
+| stereo | 120 | 120 | success |
+| sbs diagnostic | 120 | 120 | success |
+| aer diagnostic | 120 | 120 | success |
+
+All three runs reported:
+
+- Meta XR Simulator `205.0.0`;
+- NVIDIA GeForce RTX 2080 Ti;
+- a 1440 x 1584 swapchain with two array views and three images;
+- DXGI format 29 (`DXGI_FORMAT_R8G8B8A8_UNORM_SRGB`);
+- progression through IDLE, READY, SYNCHRONIZED, VISIBLE, FOCUSED, STOPPING,
+  IDLE, and EXITING.
+
+The harness must run outside the restricted Codex filesystem/process sandbox.
+Inside that sandbox, the runtime reached READY but its log reported Windows
+error 5 while opening the Meta XR Simulator frontend process, preventing
+session synchronization. The same binary and runtime manifest completed
+normally outside the sandbox.
+
+The simulator logged an undestroyed reference space during its internal
+shutdown. Its trace shows that the remaining space is a simulator-created VIEW
+space; the harness-created LOCAL space is explicitly destroyed before
+`xrDestroySession`. No harness cleanup change is indicated by this warning.
+
+This regression closes the post-merge API/frame-loop requirement only. It does
+not add operator visual acceptance and does not validate Android, Quest,
+GameNativeXR SBS/AER sampling, or image transport.

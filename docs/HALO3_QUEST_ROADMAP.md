@@ -307,7 +307,7 @@ development baseline before changing guest behavior or adding a game profile.
 | Restore correct XR renderer selection after the upstream Vulkan default | Codex | C-M | **Complete:** `e7616c75` forces XR through `XServerViewGL` and keeps Vulkan for non-XR sessions |
 | Build and statically verify `modernXrDebug` | Codex | C-M | **Complete:** Gradle build and `tools/verify-quest-apk.ps1` pass |
 | Rerun strict protocol parser/serializer and UDP loopback tests from `Dev-Update` | Codex | C-M | **Complete:** build, CTest, and live loopback pass at `7542aaba`; see `docs/G0U_PROTOCOL_VALIDATION.md` |
-| Rerun stereo, SBS, and AER visual-harness scenarios in Meta XR Simulator | Codex | C-H | Fresh automated frame-loop results and operator capture where available |
+| Rerun stereo, SBS, and AER visual-harness scenarios in Meta XR Simulator | Codex | C-H | **API/frame-loop complete:** all patterns pass 120/120 frames after the merge; operator visual capture remains open; see `docs/XR_VISUAL_HARNESS_VALIDATION.md` |
 | Audit merged renderer, activity lifecycle, audio focus, input, and suspend/resume seams for XR-specific regressions | Antigravity read-only review; Codex decision | AG-PL / C-H | Ranked findings with source locations and no speculative fixes |
 | Add rate-limited Java-side logging for renderer selection and XR activity transitions if current logs are insufficient | Codex | C-M | Logcat evidence identifies selected renderer and lifecycle transitions |
 | Record the Android Gradle Plugin/compile SDK 36 compatibility warning and decide whether to upgrade only if it becomes actionable | Antigravity inventory; Codex decision | AG-FL / C-M | Toolchain issue recorded without unrelated build-system churn |
