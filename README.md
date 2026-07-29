@@ -52,8 +52,16 @@ You can support GameNative on Ko-fi at https://ko-fi.com/gamenative
 
 ## Building
 ### IF YOU JUST WANT TO USE THE APP, PLEASE SEE THE HOW TO USE SECTION ABOVE. THIS IS ONLY NEEDED IF YOU WANT TO CONTRIBUTE FOR DEVELOPMENT.
-1. I use a normal build in Android studio. Hit me up if you can't figure out how to build.
-2. **SteamGridDB API Key (Optional):** To enable automatic fetching of game images for Custom Games, add your SteamGridDB API key to `local.properties`:
+1. Install the Android SDK/NDK versions pinned by the project and set `sdk.dir` in `local.properties` if Android Studio has not already done so.
+2. **JavaSteam checkout:** The historic JavaSteam snapshot coordinates are no longer consistently available. Build the GameNative-compatible branch before building this app:
+   ```
+   git clone --branch gamenative-latest https://github.com/joshuatam/JavaSteam.git ../JavaSteamGameNative
+   cd ../JavaSteamGameNative
+   ./gradlew jar :javasteam-depotdownloader:jar
+   ```
+   GameNativeXR automatically uses those sibling artifacts. To use another checkout location, pass `-PjavasteamDir=/path/to/JavaSteam` to Gradle.
+3. Build the debug APK with `./gradlew assembleDebug`. On constrained or sandboxed Windows environments where the Kotlin daemon cache is unavailable, add `-Pkotlin.compiler.execution.strategy=in-process`.
+4. **SteamGridDB API Key (Optional):** To enable automatic fetching of game images for Custom Games, add your SteamGridDB API key to `local.properties`:
    ```
    STEAMGRIDDB_API_KEY=your_api_key_here
    ```

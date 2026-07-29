@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import java.io.File
 
 plugins {
     alias(libs.plugins.android.application)
@@ -218,11 +219,33 @@ dependencies {
     // Chrome Custom Tabs for GOG OAuth
     implementation("androidx.browser:browser:1.8.0")
 
-    // JavaSteam
-    val localBuild = false // Change to 'true' needed when building JavaSteam manually
-    if (localBuild) {
-        implementation(files("../../JavaSteam/build/libs/javasteam-1.8.0.1-18-SNAPSHOT.jar"))
-        implementation(files("../../JavaSteam/javasteam-depotdownloader/build/libs/javasteam-depotdownloader-1.8.0.1-18-SNAPSHOT.jar"))
+    // JavaSteam. Prefer locally built artifacts when a sibling JavaSteam checkout is
+    // available. Override the checkout location with -PjavasteamDir=<path>.
+    fun findLocalJavaSteamJar(directory: File, prefix: String): File? =
+        directory.listFiles()
+            ?.filter { candidate ->
+                candidate.isFile &&
+                    candidate.name.startsWith(prefix) &&
+                    candidate.name.endsWith(".jar") &&
+                    !candidate.name.endsWith("-sources.jar") &&
+                    !candidate.name.endsWith("-javadoc.jar")
+            }
+            ?.maxByOrNull { candidate -> candidate.lastModified() }
+
+    val javaSteamRoot = project.findProperty("javasteamDir")
+        ?.toString()
+        ?.let(::file)
+        ?: rootProject.file("../JavaSteamGameNative")
+    val localJavaSteam = findLocalJavaSteamJar(javaSteamRoot.resolve("build/libs"), "javasteam-")
+    val localDepotDownloader = findLocalJavaSteamJar(
+        javaSteamRoot.resolve("javasteam-depotdownloader/build/libs"),
+        "javasteam-depotdownloader-",
+    )
+
+    if (localJavaSteam != null && localDepotDownloader != null) {
+        logger.lifecycle("Using local JavaSteam artifacts from ${javaSteamRoot.absolutePath}")
+        implementation(files(localJavaSteam))
+        implementation(files(localDepotDownloader))
         implementation(libs.bundles.javasteam.dev)
     } else {
         implementation(libs.javasteam) {
