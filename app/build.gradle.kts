@@ -74,6 +74,9 @@ android {
         )
 
         ndk {
+            // The general container still ships 32-bit native components. The
+            // Quest XR runtime is intentionally arm64-v8a-only; deployment
+            // verification asserts its required native pair separately.
             abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
         }
 

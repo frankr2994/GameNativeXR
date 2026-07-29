@@ -76,6 +76,18 @@ function Get-AdbArguments([string[]]$Arguments) {
     return $Arguments
 }
 
+function Get-ZipEntryHash([System.IO.Compression.ZipArchiveEntry]$Entry) {
+    $stream = $Entry.Open()
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return ([System.BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace("-", "")
+    }
+    finally {
+        $algorithm.Dispose()
+        $stream.Dispose()
+    }
+}
+
 $resolvedApk = Resolve-RelativePath $ApkPath
 $resolvedReport = Resolve-RelativePath $ReportPath
 $androidSdkRoot = Get-SdkRoot $SdkRoot
@@ -105,13 +117,52 @@ $apkItem = Get-Item -LiteralPath $resolvedApk
 $gitCommit = (Invoke-External "git" @("rev-parse", "HEAD"))
 $gitState = & git status --short 2>&1 | Out-String
 
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$expectedXrLibraries = @(
+    [PSCustomObject]@{
+        Entry = "lib/arm64-v8a/libxr.so"
+        Source = Join-Path $repoRoot "app\src\main\jniLibs\arm64-v8a\libxr.so"
+    }
+    [PSCustomObject]@{
+        Entry = "lib/arm64-v8a/libopenxr_loader.so"
+        Source = Join-Path $repoRoot "app\src\main\jniLibs\arm64-v8a\libopenxr_loader.so"
+    }
+)
+$archive = [System.IO.Compression.ZipFile]::OpenRead($resolvedApk)
+try {
+    $archiveEntries = @{}
+    foreach ($entry in $archive.Entries) {
+        $archiveEntries[$entry.FullName] = $entry
+    }
+    $xrLibraryChecks = foreach ($expected in $expectedXrLibraries) {
+        $sourceExists = Test-Path -LiteralPath $expected.Source
+        $entry = $archiveEntries[$expected.Entry]
+        $entryExists = $null -ne $entry
+        $sourceHash = if ($sourceExists) { (Get-FileHash -LiteralPath $expected.Source -Algorithm SHA256).Hash } else { "<missing source>" }
+        $entryHash = if ($entryExists) { Get-ZipEntryHash $entry } else { "<missing APK entry>" }
+        [PSCustomObject]@{
+            Name = "XR native library $($expected.Entry)"
+            Pass = $sourceExists -and $entryExists -and $sourceHash -eq $entryHash
+            Detail = "source=$sourceHash apk=$entryHash"
+        }
+    }
+    $hasArm32XrLibrary = $archiveEntries.ContainsKey("lib/armeabi-v7a/libxr.so") -or
+        $archiveEntries.ContainsKey("lib/armeabi-v7a/libopenxr_loader.so")
+}
+finally {
+    $archive.Dispose()
+}
+
 $checks = @(
     [PSCustomObject]@{ Name = "Expected package"; Pass = $packageName -eq $expectedPackage; Detail = $packageName }
     [PSCustomObject]@{ Name = "ARM64 native libraries"; Pass = $hasArm64; Detail = $abiLine }
     [PSCustomObject]@{ Name = "Meta Quest VR activity"; Pass = $hasMetaQuestActivity; Detail = "com.winlator.xr.runtime.MetaQuest" }
     [PSCustomObject]@{ Name = "Quest VR category"; Pass = $hasQuestVrCategory; Detail = "com.oculus.intent.category.VR" }
     [PSCustomObject]@{ Name = "APK signing"; Pass = $signing -match "Verified"; Detail = ($signing -split "`r?`n" | Select-Object -First 1) }
+    [PSCustomObject]@{ Name = "Quest XR ABI contract"; Pass = -not $hasArm32XrLibrary; Detail = "Quest XR native pair is arm64-v8a-only; armeabi-v7a remains a general-app ABI" }
 )
+$checks += $xrLibraryChecks
 
 $deviceSummary = "Not checked"
 if ($Install -or $Launch -or $RequireDevice) {
@@ -152,6 +203,7 @@ $report = @(
     "Package: $packageName",
     "Version: $versionName ($versionCode)",
     "Launchable activity: $launchableLine",
+    "Quest XR ABI scope: arm64-v8a only",
     "",
     "Checks:"
 )

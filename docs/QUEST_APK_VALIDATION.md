@@ -12,9 +12,12 @@ From the repository root:
 .\tools\verify-quest-apk.ps1
 ```
 
-The script checks the APK hash, package/version, ARM64 native libraries,
-Meta Quest VR entry activity/category, and APK signing. It does not connect to
-or modify a headset unless an ADB option is supplied.
+The script checks the APK hash, package/version, ARM64 declaration, required
+Quest XR library entries (`libxr.so` and `libopenxr_loader.so`) and their
+source-byte hashes, Meta Quest VR entry activity/category, and APK signing.
+The Quest XR path is intentionally arm64-v8a-only; the broader app may still
+ship general `armeabi-v7a` libraries. It does not connect to or modify a
+headset unless an ADB option is supplied.
 
 ## Install and launch on Quest 2
 

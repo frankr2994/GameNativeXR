@@ -234,7 +234,7 @@ Goal: establish known-good PCVR and Android baselines before changing behavior.
 | Add project-specific agent/build guidance without overriding Halo-MCC-VR's existing safety rules | Codex | C-M | Concise `AGENTS.md`/build documentation |
 | Build the fork's unmodified `Dev` APK | Codex | C-M | **Complete:** source-accountable debug APK; local GameNative JavaSteam fallback documented in `67d5e742` |
 | Verify APK identity and prepare an explicit Quest deployment path | Codex | C-M | **Complete:** `tools/verify-quest-apk.ps1` verifies package, ABI, Quest manifest entries, signing, hash, and optional ADB install/launch |
-| Verify required XR native entries and reconcile ABI declarations | Codex | C-M | **Next hardening task:** assert `libxr.so`/OpenXR loader APK entries and hashes, then decide whether the `armeabi-v7a` filter should remain |
+| Verify required XR native entries and reconcile ABI declarations | Codex | C-M | **Complete:** verifier asserts arm64 `libxr.so` and OpenXR-loader APK entries match source hashes; `armeabi-v7a` remains only for general-app native components, not Quest XR |
 | Build unmodified Halo-MCC-VR on Windows x64 | Codex + Rider | C-M | **Complete:** commit `ba1407a`; `cmake --preset release`, `cmake --build --preset release --parallel 1`, and `ctest --preset release` pass |
 | Verify Halo 3 PCVR behavior on the existing supported PC path | User + Codex | C-H for failures only | Reference logs/config and headset acceptance notes |
 | Audit licenses and provenance of packaged native binaries, especially `libxr.so` | Antigravity review, Codex decision | AG-PL / C-H | **Evidence inventory complete:** SHA-256 and historical attribution recorded; exact source/license confirmation remains a release blocker |
