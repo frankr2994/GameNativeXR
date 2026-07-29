@@ -1,6 +1,6 @@
 # Halo 3 on Standalone Quest: Engineering Roadmap
 
-Status: G0 build baselines complete; Phase 1 flat-game feasibility next; Phase 2 protocol/design package reviewed and awaiting runnable probe implementation
+Status: G0 build baselines complete; Phase 1 flat-game feasibility next; Phase 2 protocol mock is runnable and simulator visual-harness implementation is next
 Target branch: `Dev`
 First game: Steam Halo: The Master Chief Collection, Halo 3 campaign
 Available development device: Meta Quest 2
@@ -225,7 +225,7 @@ without MCC, Steam, game hooks, or signature scanning.
 |---|---|---|---|
 | Write a normative version 0.4 protocol specification from host code and packet captures | Codex | C-H | **Initial specification complete:** `docs/XR_BRIDGE_PROTOCOL.md`; units/handedness remain measured-validation items |
 | Create golden packet vectors and parser/serializer tests | Antigravity | AG-FM | **Design complete:** corpus in `ANTIGRAVITY_HANDOFFS/TASK-01-protocol-vectors`; Codex must integrate strict tests before it is treated as executable proof |
-| Implement a protocol-only mock host and x64 guest parser/serializer | Codex | C-M | Runnable UDP fixture using the corpus; explicitly reject malformed/oversize packets and avoid the current host parser's extra-token crash |
+| Implement a protocol-only mock host and x64 guest parser/serializer | Codex | C-M | **Complete:** `tools/xr-bridge-protocol` has a strict parser/serializer, vector-backed CTest coverage, and a loopback UDP fixture; malformed packets are rejected atomically |
 | Implement an independent x64 Windows OpenXR/D3D11 visual harness | Antigravity in isolated worktree | AG-FH | Simulator-runnable SBS/AER test-pattern harness; it must not claim to exercise the Android XServer image path |
 | Add host diagnostics for session state, frame ID, eye selection, packets, and dropped frames | Codex | C-M | Structured, rate-limited logs, after a source-owned host seam exists |
 | Exercise the visual harness in Meta XR Simulator | Antigravity test script; Codex integration | AG-FM / C-M | Repeatable simulator scenario; does not substitute for protocol-mock tests or physical Quest APK testing |
