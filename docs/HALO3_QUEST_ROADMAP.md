@@ -163,6 +163,27 @@ artifacts remain in `F:\QuestVR\ANTIGRAVITY_HANDOFFS\BATCH-03-*`:
   MCC installation evidence. It does not establish an executable path, AppID,
   mod hash, or Quest performance result by itself.
 
+The five Antigravity Batch 4 handoffs are complete and reviewed. Their
+artifacts remain in `F:\QuestVR\ANTIGRAVITY_HANDOFFS\BATCH-04-*`:
+
+- The owned MCC install is now identified as Steam AppID `976730`, build ID
+  `19905945`, build tag `2025.08.16.178512.1-Release`, with Halo 3 depot
+  `976733` / DLC AppID `1064221`. The observed launcher executable hash is
+  `BE70D6DCD1A884F10CEB342A7A2DCB35EE0FA43181B66A1D19C3D830E9834691`;
+  the observed `halo3.dll` hash is
+  `B209D8454B12DC77E54CCD2C9924EC8D44B8619D21CF98E36FFAF601E67EFB63`.
+- The static mod mapping confirms the expected MCC executable, `halo3.dll`,
+  and candidate package artifacts. It does not prove the current signatures
+  resolve or that the mod works with this MCC build at runtime.
+- The profile evidence draft can supply observed identity and hash fields, but
+  all performance, translator, graphics, and launch settings remain unproven.
+- The PCVR readiness package is planning input only. Its recommendation to use
+  `-eac_launcherdisabled` is not accepted: the current Halo-MCC-VR launcher
+  directly creates `MCC-Win64-Shipping.exe` with its own documented windowed
+  arguments, and repository rules prohibit interacting with Easy Anti-Cheat.
+  Likewise, deployment/rollback must follow the repository candidate workflow,
+  not manual deletion advice in the handoff.
+
 ## 3. Program Gates
 
 Work must stop at a failed gate until the failure is understood. Later XR work
@@ -248,7 +269,7 @@ integration.
 
 | Task | Owner | Model | Deliverable |
 |---|---|---|---|
-| Create a Halo 3-only GameNative profile with conservative memory, graphics, and CPU settings | Codex | C-H | **Prepared:** non-binding schema/inventory in the Batch 2 handoff; production values wait for owned MCC install evidence |
+| Create a Halo 3-only GameNative profile with conservative memory, graphics, and CPU settings | Codex | C-H | **Prepared:** observed MCC/Halo 3 identity, build, and hashes are in the Batch 4 handoff; production launch and performance values still wait for controlled evidence |
 | Install only user-owned MCC components required for Halo 3 and launch without anti-cheat | User provides files/auth; Codex automates profile | C-M | Repeatable launch recipe |
 | Test the existing launcher/injection path under Wine/Box64 | Codex | C-H | Capability matrix for process creation, remote injection, hooks, and Steam presence |
 | If remote injection fails, test Wine-supported DLL loading or a proxy/bootstrap DLL | Codex | C-H | Reversible injection path preserving PCVR launcher |
