@@ -216,6 +216,39 @@ artifacts remain in `F:\QuestVR\ANTIGRAVITY_HANDOFFS\BATCH-04-*`:
   Likewise, deployment/rollback must follow the repository candidate workflow,
   not manual deletion advice in the handoff.
 
+The five Antigravity Batch 5 handoffs are complete and reviewed. Their
+artifacts remain in `F:\QuestVR\ANTIGRAVITY_HANDOFFS\BATCH-05-*`:
+
+- The renderer audit confirms the post-merge `XServerViewGL` route reaches
+  `XrRenderer` when XR is enabled. Its reported persistent main-process state
+  leak is not established: the main-process `XrActivity` is an intentional
+  trampoline, starts the VR-process runtime, and then kills its own process.
+  The transition still needs PID and renderer-selection logs on a device.
+- `XrRenderer` dereferences `XrActivity.container` during surface setup without
+  a fallback. A valid normal launch supplies a container, but invalid/deleted
+  container handling is an untested crash path and should be hardened with the
+  next lifecycle work.
+- The audio/input review confirms the XR lifecycle deliberately keeps the GL
+  renderer alive through pause while `MainActivity` suspends the guest and its
+  audio environment. Android `AudioManager` focus calls are absent; add them
+  only after a physical Quest run establishes their desired behavior.
+- Steam is the highest remaining process-boundary risk for the first target:
+  `MetaQuest` runs in `:vr_process`, while many `SteamService` accessors depend
+  on a process-local `SteamService.instance`. A focused VR-process Steam launch
+  probe is required before promising Steam authorization, app tickets,
+  achievements, or cloud synchronization in XR. This is evidence for a probe,
+  not authorization to introduce IPC yet.
+- The requested NDK `27.3.13750724` is not installed. It does not block the
+  current `modernXrDebug` build because all Android `externalNativeBuild`
+  blocks are disabled and the relevant libraries are prebuilt. Install it
+  before enabling or rebuilding Android native components; do not change the
+  pinned version merely to match an installed NDK.
+- The acceptance review confirms desktop build, protocol, and simulator checks
+  are complete, and identifies a bounded next instrumentation set: renderer
+  selection, XR activity PID/lifecycle, and Steam-service availability. Packet
+  counters and frame pacing telemetry remain later work because the native host
+  is not source-owned.
+
 ## 3. Program Gates
 
 Work must stop at a failed gate until the failure is understood. Later XR work
@@ -224,7 +257,7 @@ must not hide a basic game-emulation failure.
 | Gate | Required proof | Stop condition |
 |---|---|---|
 | G0: Reproducible baselines | GameNativeXR APK and Halo-MCC-VR Windows build are reproducible from pinned commits | Missing source, toolchain, or undocumented binary prevents reproduction |
-| G0U: Post-upstream qualification | `Dev-Update` builds, passes APK verification and desktop protocol/simulator regressions, and has no known static XR-routing blocker | Merge regression invalidates the bridge, renderer selection, packaging, or simulator harness |
+| G0U: Post-upstream qualification | `Dev-Update` builds, passes APK verification and desktop protocol/simulator regressions, and records XR renderer/process-boundary behavior needed for the first device run | Merge regression invalidates the bridge, renderer selection, packaging, simulator harness, or the VR-process launch path |
 | G1: Flat Halo 3 | The available Quest 2 launches owned MCC/Halo 3 without anti-cheat and completes 30 minutes of campaign in a flat window | OOM, unsupported instruction, DRM/auth failure, or unusable sustained frame rate; a measured Quest 2 hardware ceiling requires Quest 3 access before work can resume |
 | G2: XR bridge probe | A protocol mock validates UDP parsing/serialization, and an independent Windows x64 OpenXR/D3D11 harness validates simulator presentation; physical Quest then validates the Android host/image path | Protocol is unstable, host/image-path behavior differs, or eye images require CPU readback |
 | G3: Halo stereo | Halo 3 renders geometrically correct left/right eyes in-headset while the PCVR backend still works | Per-eye hooks fail under Wine/Box64 or image transport is too expensive |
@@ -308,9 +341,10 @@ development baseline before changing guest behavior or adding a game profile.
 | Build and statically verify `modernXrDebug` | Codex | C-M | **Complete:** Gradle build and `tools/verify-quest-apk.ps1` pass |
 | Rerun strict protocol parser/serializer and UDP loopback tests from `Dev-Update` | Codex | C-M | **Complete:** build, CTest, and live loopback pass at `7542aaba`; see `docs/G0U_PROTOCOL_VALIDATION.md` |
 | Rerun stereo, SBS, and AER visual-harness scenarios in Meta XR Simulator | Codex | C-H | **API/frame-loop complete:** all patterns pass 120/120 frames after the merge; operator visual capture remains open; see `docs/XR_VISUAL_HARNESS_VALIDATION.md` |
-| Audit merged renderer, activity lifecycle, audio focus, input, and suspend/resume seams for XR-specific regressions | Antigravity read-only review; Codex decision | AG-PL / C-H | Ranked findings with source locations and no speculative fixes |
-| Add rate-limited Java-side logging for renderer selection and XR activity transitions if current logs are insufficient | Codex | C-M | Logcat evidence identifies selected renderer and lifecycle transitions |
-| Record the Android Gradle Plugin/compile SDK 36 compatibility warning and decide whether to upgrade only if it becomes actionable | Antigravity inventory; Codex decision | AG-FL / C-M | Toolchain issue recorded without unrelated build-system churn |
+| Audit merged renderer, activity lifecycle, audio focus, input, suspend/resume, and Steam seams for XR-specific regressions | Antigravity read-only review; Codex decision | AG-PL / C-H | **Complete:** Batch 5 reviewed; renderer route is intact, process-boundary and robustness probes are prioritized |
+| Add rate-limited Java-side logging for renderer selection, XR activity PID/lifecycle, and Steam-service availability | Codex | C-M | Logcat evidence identifies selected renderer, process, lifecycle transitions, and whether required Steam state is present |
+| Run a Steam XR-process launch probe using only the user's authenticated, owned install | User + Codex | C-H | Evidence for/exclusion of an IPC design; no credentials or DRM bypass and no IPC implementation without a demonstrated failure |
+| Record the Android Gradle Plugin/compile SDK 36 warning and NDK `27.3.13750724` availability; install the pinned NDK before native rebuild work | Antigravity inventory; Codex decision | AG-FL / C-M | **Complete:** current APK build is unaffected by the absent NDK; native rebuild work is blocked until it is installed |
 
 Simulator work can complete the protocol and Windows OpenXR portions of this
 phase. It cannot execute the Android APK or close physical Quest requirements.
@@ -606,21 +640,18 @@ The first target is complete when:
 
 Start in this order:
 
-1. Rerun the protocol mock's full parser, serializer, malformed-packet, and UDP
-   loopback suite from `Dev-Update`.
-2. Rerun stereo, SBS, and AER visual-harness scenarios in Meta XR Simulator and
-   attach fresh results to the `Dev-Update` commit.
-3. Complete a read-only XR seam audit of the merged renderer, activity
-   lifecycle, audio-focus, input, and suspend/resume changes.
-4. Add only the diagnostics required to make the first Android XR launch
-   observable, then rebuild and verify the APK.
-5. Verify the existing Halo-MCC-VR PCVR reference before changing its backend.
-6. When ready to use the physical Quest 2, attempt G1 with a flat Halo 3 window
-   and collect one complete evidence bundle.
+1. Add only the process/renderer/Steam diagnostics needed to make the first
+   Android XR launch observable, then rebuild and verify the APK.
+2. Keep the completed protocol and visual-harness utilities as desktop
+   regression checks; rerun them after changes to their own code or SDK inputs.
+3. Verify the existing Halo-MCC-VR PCVR reference before changing its backend.
+4. When ready to use the physical Quest 2, run the narrow lifecycle and
+   Steam-process probes before attempting the flat-game G1 session.
+5. Attempt G1 with a flat Halo 3 window and collect one complete evidence
+   bundle only after those probes pass or clearly identify their failure mode.
 
-Items 1 through 3 can proceed with the current simulator-only workflow. Items 4
-and 6 require Android/Quest evidence for completion even if their code and
-automation are prepared on the desktop. Do not refactor Halo-MCC-VR or replace
-`libxr.so` until G1 evidence exists, unless missing `libxr.so` source blocks a
-reproducible release baseline. Halo tools are not needed until a specific hook,
-signature, or data-layout failure is observed.
+Only item 2 is fully simulator-completable. The diagnostics can be prepared on
+the desktop, but their acceptance requires Android/Quest log evidence. Do not
+refactor Halo-MCC-VR, add Steam IPC, or replace `libxr.so` until a measured
+device result justifies that scope. Halo tools are not needed until a specific
+hook, signature, or data-layout failure is observed.
