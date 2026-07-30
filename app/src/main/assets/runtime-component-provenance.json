@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-29",
+  "scope": "Hashes describe the exact locally bundled archive, not an upstream release checksum.",
+  "components": [
+    {
+      "id": "fexcore-2605",
+      "status": "locally_hashed",
+      "local_path": "fexcore/fexcore-2605.tzst",
+      "sha256": "2DE0A0502190BFC96E62F1F9A252DEC9CD81B59C3FBDA763DFC5BEA812AFD437",
+      "upstream_tag": "FEX-2605",
+      "note": "Custom GameNative payload containing Windows-facing DLLs; its upstream build recipe has not yet been reproduced."
+    },
+    {
+      "id": "dxvk-2.6.1-gplasync",
+      "status": "locally_hashed",
+      "local_path": "dxwrapper/dxvk-2.6.1-gplasync.tzst",
+      "sha256": "B397293F0018A063FDE5EC67030D44461E67606C645E9B81BFD845C5177FE158",
+      "upstream_tag": "v2.6.1"
+    },
+    {
+      "id": "dxvk-2.7.1",
+      "status": "locally_hashed",
+      "local_path": "../../legacy/assets/dxwrapper/dxvk-2.7.1.tzst",
+      "sha256": "0255396BBEDEEC6D39E2192E2A3F8B2B9C1AA7EFDFB5E445782BF10698BC0652",
+      "upstream_tag": "v2.7.1",
+      "note": "Selectable candidate only; it is not a global default."
+    },
+    {
+      "id": "vkd3d-2.14.1",
+      "status": "locally_hashed",
+      "local_path": "dxwrapper/vkd3d-2.14.1.tzst",
+      "sha256": "B17D32DE8178201F15A49AC5CD137778F8477C7FE75343963E2158B86A8159BA",
+      "upstream_tag": "v2.14.1"
+    },
+    {
+      "id": "vkd3d-3.0b",
+      "status": "locally_hashed",
+      "local_path": "../../legacy/assets/dxwrapper/vkd3d-3.0b.tzst",
+      "sha256": "FDACE3D5894AF70F119E17BAAD44C96885387A0E333C419B94157EFEDD78185D",
+      "upstream_tag": "v3.0b",
+      "note": "Selectable candidate only; it is not a global default."
+    },
+    {
+      "id": "adrenotools-turnip26.0.0_R8",
+      "status": "locally_hashed",
+      "local_path": "../../legacy/assets/graphics_driver/adrenotools-turnip26.0.0_R8.tzst",
+      "sha256": "A79E67A397F94E8E809676C7753580DB77B390B7F7631368256AF33D0654CD11",
+      "upstream_tag": "Mesa 26.0.0",
+      "note": "Wrapper-driver candidate only; Quest device qualification remains pending."
+    },
+    {
+      "id": "box64-0.4.2-bionic",
+      "status": "locally_hashed",
+      "local_path": "box86_64/box64-0.4.2-bionic.tzst",
+      "sha256": "FCD10730FF899BAD829A5E91780D8AAE6350A7E152069FF2C90E93922ECAD192",
+      "upstream_tag": "v0.4.2"
+    },
+    {
+      "id": "proton-10.0-arm64ec-2",
+      "status": "runtime_default",
+      "source": "ContainerUtils.kt",
+      "note": "The selected container is acquired through the runtime content flow; no committed local archive or manifest checksum is available."
+    },
+    {
+      "id": "javasteam-1.8.0.1-24-SNAPSHOT",
+      "status": "build_dependency",
+      "source": "app/build.gradle",
+      "note": "GameNative-compatible snapshot dependency. No release artifact is committed to assets."
+    }
+  ]
+}
