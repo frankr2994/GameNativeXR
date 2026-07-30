@@ -9,6 +9,12 @@
       "upstream_tag": "FEX-2605"
     },
     {
+      "id": "fexcore-2607",
+      "status": "UNKNOWN",
+      "blocking_note": "Custom GameNative payload. The exact upstream compiler toolchain and packaging recipe used to produce this specific archive cannot be established from the repository. SHA-256 missing.",
+      "upstream_tag": "FEX-2607"
+    },
+    {
       "id": "dxvk-2.6.1-gplasync",
       "status": "UNKNOWN",
       "blocking_note": "Downloaded from GameNative CDN. Local cache SHA-256 missing.",
