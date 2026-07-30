@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-29",
+  "components": [
+    {
+      "id": "fexcore-2605",
+      "status": "UNKNOWN",
+      "blocking_note": "Custom GameNative payload containing Windows-facing DLLs. The exact upstream compiler toolchain and packaging recipe used to produce this specific archive cannot be established from the repository. SHA-256 missing.",
+      "upstream_tag": "FEX-2605"
+    },
+    {
+      "id": "dxvk-2.6.1-gplasync",
+      "status": "UNKNOWN",
+      "blocking_note": "Downloaded from GameNative CDN. Local cache SHA-256 missing.",
+      "upstream_tag": "v2.6.1"
+    },
+    {
+      "id": "dxvk-2.7.1",
+      "status": "UNKNOWN",
+      "blocking_note": "Downloaded from GameNative CDN. Local cache SHA-256 missing.",
+      "upstream_tag": "v2.7.1"
+    },
+    {
+      "id": "vkd3d-3.0b",
+      "status": "UNKNOWN",
+      "blocking_note": "Downloaded from GameNative CDN. Local cache SHA-256 missing.",
+      "upstream_tag": "v3.0b"
+    },
+    {
+      "id": "turnip26.0.0_R8",
+      "status": "UNKNOWN",
+      "blocking_note": "Downloaded from GameNative CDN. Local cache SHA-256 missing.",
+      "upstream_tag": "Mesa 26.0.0"
+    },
+    {
+      "id": "proton-10.0-arm64ec-2",
+      "status": "UNKNOWN",
+      "blocking_note": "Downloaded from GameNative CDN. Local cache SHA-256 missing.",
+      "upstream_tag": "Proton 10.0"
+    },
+    {
+      "id": "wowbox64-0.4.2",
+      "status": "UNKNOWN",
+      "blocking_note": "Bundled in assets. SHA-256 missing. Exact build script for the tzst archive not located.",
+      "upstream_tag": "v0.4.2"
+    },
+    {
+      "id": "javasteam-1.8.0.1-24-SNAPSHOT",
+      "status": "UNKNOWN",
+      "blocking_note": "Dependency sourced from local build or maven containing joshuatam/JavaSteam gamenative-latest branch.",
+      "upstream_tag": "gamenative-latest"
+    }
+  ]
+}
