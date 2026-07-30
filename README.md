@@ -100,7 +100,7 @@ Want to help out? Message us to get into the **#development** channel on [Discor
    ./gradlew jar :javasteam-depotdownloader:jar
    ```
    GameNativeXR automatically uses those sibling artifacts. To use another checkout location, pass `-PjavasteamDir=/path/to/JavaSteam` to Gradle.
-3. Build the Quest XR debug APK with `./gradlew assembleModernXrDebug`. On constrained or sandboxed Windows environments where the Kotlin daemon cache is unavailable, add `-Pkotlin.compiler.execution.strategy=in-process`.
+3. Build the Quest XR debug APK with `./gradlew assembleModernXrDebug`. On constrained or sandboxed Windows environments where the Kotlin daemon cache is unavailable, add `-Pkotlin.compiler.execution.strategy=in-process`. In PowerShell, quote that argument: `& .\gradlew.bat assembleModernXrDebug --no-daemon --console=plain '-Pkotlin.compiler.execution.strategy=in-process'`.
 4. Verify the generated Quest APK with `./tools/verify-quest-apk.ps1`. See [Quest APK verification](docs/QUEST_APK_VALIDATION.md) for optional ADB install/launch commands.
 5. **SteamGridDB API Key (Optional):** To enable automatic fetching of game images for Custom Games, add your SteamGridDB API key to `local.properties`:
    ```properties
