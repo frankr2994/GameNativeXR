@@ -11,7 +11,7 @@ This document catalogs the third-party dependencies used by GameNativeXR, identi
 
 ### Proton & Wine
 * **Status:** Already integrated but not default for all paths.
-* **Current Version Used:** 
+* **Current Version Used:**
   * `proton-10.0-arm64ec-2` is the actual default for modern Bionic containers.
   * Bundled Proton 9 container patterns are fallback/legacy assets.
 * **Deferred:** Stock Proton or Wine container replacement is a deferred architecture project. Do not replace the custom container pattern with stock Proton.
@@ -56,7 +56,7 @@ This document catalogs the third-party dependencies used by GameNativeXR, identi
 
 ### Submodules: libadrenotools & lsfg-vk-android
 * **Status:** Deferred native rebuilds.
-* **Current State:** 
+* **Current State:**
   * Source submodule pointers (`libadrenotools`, `lsfg-vk-android`) exist.
   * Shipped prebuilt binaries (like `liblsfg-vk-layer.so`) are distinct artifacts.
 * **Deferred:** Updating the source pointers plus executing native rebuilds is deferred until NDK 27.3.13750724 is installed.

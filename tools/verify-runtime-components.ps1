@@ -3,130 +3,188 @@ param(
 )
 
 if ($Help) {
-    Write-Host "verify-runtime-components.ps1 - Validates GameNativeXR runtime dependencies"
-    Write-Host "Parses arrays.xml, *_download.json manifests, and verifies local bundled assets without network calls."
+    Write-Host 'verify-runtime-components.ps1 - offline validation for GameNativeXR runtime assets'
     exit 0
 }
 
-$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$ProjectRoot = Resolve-Path (Join-Path $ScriptDir "..")
-$OutputDir = Join-Path $ProjectRoot "build\verification"
-if (-not (Test-Path $OutputDir)) {
-    New-Item -ItemType Directory -Path $OutputDir | Out-Null
-}
-$ReportPath = Join-Path $OutputDir "runtime-verification-report.txt"
+$ProjectRoot = (Resolve-Path (Join-Path $ScriptDir '..')).Path
+$MainAssets = Join-Path $ProjectRoot 'app\src\main\assets'
+$LegacyAssets = Join-Path $ProjectRoot 'app\src\legacy\assets'
+$ReportDir = Join-Path $ProjectRoot 'build\verification'
+$ReportPath = Join-Path $ReportDir 'runtime-verification-report.txt'
 
-$LogLines = @()
-function Log($msg) {
-    Write-Host $msg
-    $script:LogLines += $msg
-}
+$Lines = [System.Collections.Generic.List[string]]::new()
+$Failures = [System.Collections.Generic.List[string]]::new()
+$Warnings = [System.Collections.Generic.List[string]]::new()
 
-Log "=== GameNativeXR Runtime Component Verification ==="
-Log "Date: $(Get-Date)"
-
-$AssetsDir = Join-Path $ProjectRoot "app\src\main\assets"
-$LegacyAssetsDir = Join-Path $ProjectRoot "app\src\legacy\assets"
-
-# 1. Parse Provenance
-$ProvenanceFile = Join-Path $AssetsDir "runtime-component-provenance.json"
-$Provenance = @{}
-if (Test-Path $ProvenanceFile) {
-    $ProvData = Get-Content $ProvenanceFile | ConvertFrom-Json
-    foreach ($comp in $ProvData.components) {
-        $Provenance[$comp.id] = $comp
-    }
-} else {
-    Log "WARNING: runtime-component-provenance.json missing!"
+function Write-Report([string]$Message) {
+    Write-Host $Message
+    $script:Lines.Add($Message)
 }
 
-# 2. Find manifests
-$Manifests = Get-ChildItem -Path $AssetsDir -Filter "*_download.json"
-$DownloadableIDs = @{}
-$DuplicateIDs = @()
-$MalformedURLs = @()
+function Add-Failure([string]$Message) {
+    $script:Failures.Add($Message)
+    Write-Report "ERROR: $Message"
+}
 
-foreach ($mf in $Manifests) {
-    $Data = Get-Content $mf.FullName | ConvertFrom-Json
-    foreach ($comp in $Data.components) {
-        if ($DownloadableIDs.ContainsKey($comp.id)) {
-            $DuplicateIDs += $comp.id
-        } else {
-            $DownloadableIDs[$comp.id] = $comp
-        }
-        
-        if ([string]::IsNullOrWhiteSpace($comp.url) -or (-not $comp.url.StartsWith("http"))) {
-            $MalformedURLs += $comp.id
-        }
+function Add-Warning([string]$Message) {
+    $script:Warnings.Add($Message)
+    Write-Report "WARNING: $Message"
+}
+
+function Get-NormalizedVersion([string]$Value) {
+    return ($Value -replace '\s+\(Default\)$', '').Trim()
+}
+
+function Get-ArchiveFiles {
+    return @(Get-ChildItem -Path $MainAssets, $LegacyAssets -Filter '*.tzst' -Recurse -File)
+}
+
+function Test-ManifestUrl([string]$Id, [string]$Url) {
+    $uri = $null
+    if (-not [Uri]::TryCreate($Url, [UriKind]::Absolute, [ref]$uri) -or $uri.Scheme -notin @('http', 'https')) {
+        Add-Failure "Manifest component '$Id' has an invalid URL."
     }
 }
 
-if ($DuplicateIDs.Count -gt 0) { Log "ERROR: Duplicate IDs found in manifests: $($DuplicateIDs -join ', ')" }
-if ($MalformedURLs.Count -gt 0) { Log "ERROR: Malformed URLs found for IDs: $($MalformedURLs -join ', ')" }
+New-Item -ItemType Directory -Force -Path $ReportDir | Out-Null
+Write-Report '=== GameNativeXR Runtime Component Verification ==='
+Write-Report "Date: $(Get-Date -Format o)"
 
-# 3. Parse arrays.xml
-$ArraysXmlPath = Join-Path $ProjectRoot "app\src\main\res\values\arrays.xml"
-[xml]$ArraysXml = Get-Content $ArraysXmlPath
-$SelectableIDs = @()
-foreach ($array in $ArraysXml.resources.'string-array') {
-    if ($array.name -match "version_entries") {
-        foreach ($item in $array.item) {
-            $SelectableIDs += $item.Trim()
-        }
-    }
+$ArchiveFiles = Get-ArchiveFiles
+$ArchiveNames = @{}
+foreach ($archive in $ArchiveFiles) {
+    $ArchiveNames[$archive.Name] = $true
 }
 
-Log "`nChecking Selectable IDs against known packages..."
-foreach ($id in $SelectableIDs) {
-    # Check if downloadable
-    $foundDownloadable = $false
-    foreach ($key in $DownloadableIDs.Keys) {
-        if ($key -contains $id -or $DownloadableIDs[$key].name -match $id) {
-            $foundDownloadable = $true
-            break
-        }
-    }
-    
-    # Check if bundled
-    $foundBundled = $false
-    $matchingBundled = Get-ChildItem -Path $AssetsDir -Filter "*$id*.tzst" -Recurse -ErrorAction SilentlyContinue
-    if ($matchingBundled) { $foundBundled = $true }
-    
-    if (-not $foundDownloadable -and -not $foundBundled) {
-        Log "WARNING: Selectable version ID '$id' has neither a bundled package nor a manifest entry."
-    }
-}
-
-# 4. Inspect TZST members without extracting & check expected families
-Log "`nInspecting bundled .tzst packages for expected member families..."
-$ZstdExe = Join-Path $ProjectRoot "tools\zstd.exe" # Assume standard tool, or skip if not found
-$TarExe = "tar" # Built into modern Windows
-
-$AllTzst = Get-ChildItem -Path $AssetsDir -Filter "*.tzst" -Recurse
-foreach ($tzst in $AllTzst) {
-    # Hash check
-    $Hash = (Get-FileHash $tzst.FullName -Algorithm SHA256).Hash
-    Log "Package: $($tzst.Name) | SHA256: $Hash"
-    
-    # Simple check for member names using tar if available
+Write-Report ''
+Write-Report 'Checking download manifests...'
+$ManifestComponents = @{}
+foreach ($manifest in Get-ChildItem -Path $MainAssets -Filter '*_download.json' -File) {
     try {
-        $members = & $TarExe -tf $tzst.FullName 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            if ($tzst.Name -match "fexcore" -and (-not ($members -match "libarm64ecfex.dll" -or $members -match "libwow64fex.dll"))) {
-                Log "  -> ERROR: FEX package missing expected DLLs."
-            }
-            if ($tzst.Name -match "dxvk" -and (-not ($members -match "d3d11.dll" -or $members -match "dxgi.dll"))) {
-                Log "  -> ERROR: DXVK package missing expected DLLs."
-            }
-            if ($tzst.Name -match "vkd3d" -and (-not ($members -match "d3d12.dll"))) {
-                Log "  -> ERROR: VKD3D package missing expected DLLs."
-            }
-        }
+        $data = Get-Content -Raw -LiteralPath $manifest.FullName | ConvertFrom-Json
     } catch {
-        # tar might not support zstd directly on older windows without explicit plugin
+        Add-Failure "Unable to parse manifest '$($manifest.Name)': $($_.Exception.Message)"
+        continue
+    }
+
+    foreach ($component in @($data.components)) {
+        if ([string]::IsNullOrWhiteSpace($component.id)) {
+            Add-Failure "Manifest '$($manifest.Name)' contains a component without an id."
+            continue
+        }
+        if ($ManifestComponents.ContainsKey($component.id)) {
+            Add-Failure "Duplicate manifest id '$($component.id)' in '$($manifest.Name)' and '$($ManifestComponents[$component.id].Manifest)'."
+            continue
+        }
+        Test-ManifestUrl $component.id $component.url
+        $ManifestComponents[$component.id] = [pscustomobject]@{ Manifest = $manifest.Name; Component = $component }
     }
 }
 
-$LogLines | Out-File $ReportPath -Encoding utf8
-Log "`nReport saved to $ReportPath"
+[xml]$arraysXml = Get-Content -Raw -LiteralPath (Join-Path $ProjectRoot 'app\src\main\res\values\arrays.xml')
+$ArraysByName = @{}
+foreach ($array in @($arraysXml.resources.'string-array')) {
+    $ArraysByName[$array.name] = @($array.item | ForEach-Object { $_.Trim() })
+}
+
+$SelectorSpecs = @(
+    [pscustomobject]@{ Array = 'wrapper_graphics_driver_version_entries'; Id = { param($v) if ($v -eq 'System') { $null } else { "adrenotools-$v" } }; Archive = { param($v) if ($v -eq 'System') { $null } else { "adrenotools-$v.tzst" } } },
+    [pscustomobject]@{ Array = 'turnip_version_entries'; Id = { param($v) "turnip-$v" }; Archive = { param($v) "turnip-$v.tzst" } },
+    [pscustomobject]@{ Array = 'virgl_version_entries'; Id = { param($v) "virgl-$v" }; Archive = { param($v) "virgl-$v.tzst" } },
+    [pscustomobject]@{ Array = 'zink_version_entries'; Id = { param($v) "zink-$v" }; Archive = { param($v) "zink-$v.tzst" } },
+    [pscustomobject]@{ Array = 'vortek_version_entries'; Id = { param($v) "vortek-$v" }; Archive = { param($v) "vortek-$v.tzst" } },
+    [pscustomobject]@{ Array = 'adreno_version_entries'; Id = { param($v) "Adreno_" + $v + "_adpkg" }; Archive = { param($v) $null } },
+    [pscustomobject]@{ Array = 'sd8elite_version_entries'; Id = { param($v) "SD8Elite_$v" }; Archive = { param($v) $null } },
+    [pscustomobject]@{ Array = 'dxvk_version_entries'; Id = { param($v) if ($v -like 'async-*') { "dxvk-async-$($v.Substring(6))" } else { "dxvk-$v" } }; Archive = { param($v) if ($v -like 'async-*') { "dxvk-async-$($v.Substring(6)).tzst" } else { "dxvk-$v.tzst" } } },
+    [pscustomobject]@{ Array = 'vkd3d_version_entries'; Id = { param($v) "vkd3d-$v" }; Archive = { param($v) "vkd3d-$v.tzst" } },
+    [pscustomobject]@{ Array = 'box64_version_entries'; Id = { param($v) $null }; Archive = { param($v) "box64-$v.tzst" } },
+    [pscustomobject]@{ Array = 'box64_bionic_version_entries'; Id = { param($v) $null }; Archive = { param($v) "box64-$v-bionic.tzst" } },
+    [pscustomobject]@{ Array = 'wowbox64_version_entries'; Id = { param($v) $null }; Archive = { param($v) "wowbox64-$v.tzst" } },
+    [pscustomobject]@{ Array = 'fexcore_version_entries'; Id = { param($v) $null }; Archive = { param($v) "fexcore-$v.tzst" } }
+)
+
+Write-Report ''
+Write-Report 'Checking component-specific selectors...'
+foreach ($spec in $SelectorSpecs) {
+    if (-not $ArraysByName.ContainsKey($spec.Array)) {
+        Add-Failure "Required resource array '$($spec.Array)' is missing."
+        continue
+    }
+    foreach ($rawVersion in $ArraysByName[$spec.Array]) {
+        $version = Get-NormalizedVersion $rawVersion
+        $expectedId = & $spec.Id $version
+        $expectedArchive = & $spec.Archive $version
+        if ($null -eq $expectedId -and $null -eq $expectedArchive) {
+            continue
+        }
+        $hasManifest = $expectedId -and $ManifestComponents.ContainsKey($expectedId)
+        $hasArchive = $expectedArchive -and $ArchiveNames.ContainsKey($expectedArchive)
+        if (-not $hasManifest -and -not $hasArchive) {
+            Add-Failure "Selector '$($spec.Array):$rawVersion' has neither manifest id '$expectedId' nor archive '$expectedArchive'."
+        }
+    }
+}
+
+Write-Report ''
+Write-Report 'Checking archive readability and required runtime members...'
+foreach ($archive in $ArchiveFiles) {
+    $members = & tar -tf $archive.FullName 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Add-Failure "Archive '$($archive.FullName)' is not readable by tar: $($members -join ' ')"
+        continue
+    }
+    if ($archive.Name -like 'fexcore-*' -and ((@($members) -notmatch '(^|/)libarm64ecfex\.dll$').Count -eq 0 -or (@($members) -notmatch '(^|/)libwow64fex\.dll$').Count -eq 0)) {
+        Add-Failure "FEX archive '$($archive.Name)' is missing libarm64ecfex.dll or libwow64fex.dll."
+    }
+    if ($archive.Name -like 'dxvk-*' -and ((@($members) -notmatch '(^|/)d3d11\.dll$').Count -eq 0 -or (@($members) -notmatch '(^|/)dxgi\.dll$').Count -eq 0)) {
+        Add-Failure "DXVK archive '$($archive.Name)' is missing d3d11.dll or dxgi.dll."
+    }
+    if ($archive.Name -like 'vkd3d-*' -and (@($members) -notmatch '(^|/)d3d12\.dll$').Count -eq 0) {
+        Add-Failure "VKD3D archive '$($archive.Name)' is missing d3d12.dll."
+    }
+}
+
+Write-Report ''
+Write-Report 'Checking recorded local provenance...'
+$provenancePath = Join-Path $MainAssets 'runtime-component-provenance.json'
+try {
+    $provenance = Get-Content -Raw -LiteralPath $provenancePath | ConvertFrom-Json
+} catch {
+    Add-Failure "Unable to parse runtime-component-provenance.json: $($_.Exception.Message)"
+    $provenance = $null
+}
+if ($null -ne $provenance) {
+    $provenanceIds = @{}
+    foreach ($component in @($provenance.components)) {
+        if ($provenanceIds.ContainsKey($component.id)) {
+            Add-Failure "Duplicate provenance id '$($component.id)'."
+            continue
+        }
+        $provenanceIds[$component.id] = $true
+        if ($component.status -eq 'locally_hashed') {
+            if ([string]::IsNullOrWhiteSpace($component.local_path) -or [string]::IsNullOrWhiteSpace($component.sha256)) {
+                Add-Failure "Locally hashed component '$($component.id)' lacks local_path or sha256."
+                continue
+            }
+            $candidatePath = Join-Path $MainAssets $component.local_path
+            if (-not (Test-Path -LiteralPath $candidatePath)) {
+                Add-Failure "Provenance path for '$($component.id)' does not exist: $($component.local_path)."
+                continue
+            }
+            $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $candidatePath).Hash
+            if ($actualHash -ne $component.sha256) {
+                Add-Failure "SHA-256 mismatch for '$($component.id)'."
+            }
+        }
+    }
+}
+
+Write-Report ''
+Write-Report "Summary: $($Failures.Count) error(s), $($Warnings.Count) warning(s)."
+$Lines | Set-Content -LiteralPath $ReportPath -Encoding utf8
+Write-Report "Report saved to $ReportPath"
+if ($Failures.Count -gt 0) { exit 1 }
