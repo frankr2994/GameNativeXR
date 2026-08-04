@@ -103,4 +103,11 @@ sealed class LaunchFailureException(
         remediationSuggestion = "Restart GameNativeXR and submit a diagnostic log report.",
         cause = cause
     )
+
+    class InvalidHardware(detected: String) : LaunchFailureException(
+        category = LaunchFailureCategory.INCOMPATIBLE_HARDWARE_PROFILE,
+        userMessage = "Device hardware is unsupported.",
+        technicalDetails = "Detected device profile ($detected) falls below the minimum required specification (QUEST_2).",
+        remediationSuggestion = "GameNativeXR requires a Meta Quest 2 or newer headset."
+    )
 }

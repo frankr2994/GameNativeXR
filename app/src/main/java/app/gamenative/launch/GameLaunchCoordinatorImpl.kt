@@ -96,6 +96,9 @@ class GameLaunchCoordinatorImpl(
                 // State 4: DEVICE_DETECTING
                 transitionTo(LaunchState.DEVICE_DETECTING, "Detecting device hardware")
                 val hardwareInput = hardwareProfileProvider.resolve()
+                if (hardwareInput.deviceDescriptor != "QUEST_2" && hardwareInput.deviceDescriptor != "QUEST_3") {
+                    throw LaunchFailureException.InvalidHardware(hardwareInput.deviceDescriptor)
+                }
 
                 // State 5: HARDWARE_PROFILE_RESOLVING
                 transitionTo(LaunchState.HARDWARE_PROFILE_RESOLVING, "Resolving profile for ${hardwareInput.deviceDescriptor}")
