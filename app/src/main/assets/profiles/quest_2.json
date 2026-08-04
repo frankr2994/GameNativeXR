@@ -1,0 +1,39 @@
+{
+  "profileId": "quest_2",
+  "schemaVersion": 1,
+  "acceptedRuleIds": [
+    "RULE_QUEST_2_EXACT"
+  ],
+  "containerVariant": "bionic",
+  "wineVersion": "proton-10.0-arm64ec-2",
+  "wow64Mode": true,
+  "emulator": "FEXCore",
+  "fexcoreVersion": "2605",
+  "fexcoreTSOMode": "Fast",
+  "fexcoreX87Mode": "Fast",
+  "fexcoreMultiBlock": "Disabled",
+  "fexcorePreset": "INTERMEDIATE",
+  "box86Version": "0.3.2",
+  "box64Version": "0.4.2",
+  "box86Preset": "COMPATIBILITY",
+  "box64Preset": "COMPATIBILITY",
+  "graphicsDriver": "Wrapper",
+  "graphicsDriverVersion": "Turnip v26.2.0 R4",
+  "graphicsDriverConfig": "",
+  "dxwrapper": "dxvk",
+  "dxwrapperConfig": "version=1.11.1-sarek,vkd3dVersion=2.14.1",
+  "requiredPackagedComponents": [
+    {
+      "componentId": "wine_proton_10_arm64ec",
+      "minVersion": "10.0-arm64ec-2"
+    },
+    {
+      "componentId": "turnip_v26_2_0_r4",
+      "minVersion": "26.2.0"
+    },
+    {
+      "componentId": "fexcore_2605",
+      "minVersion": "2605"
+    }
+  ]
+}

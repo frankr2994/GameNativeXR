@@ -7,6 +7,8 @@ import androidx.compose.runtime.setValue
 import androidx.navigation.NavController
 import app.gamenative.db.dao.AmazonGameDao
 import app.gamenative.db.dao.GOGGameDao
+import app.gamenative.diagnostics.DiagnosticSession
+import app.gamenative.diagnostics.ProcessOutputBus
 import app.gamenative.events.EventDispatcher
 import app.gamenative.service.ActiveGameRegistry
 import app.gamenative.service.DownloadService
@@ -52,8 +54,6 @@ class PluviaApp : SplitCompatApplication() {
     override fun onCreate() {
         super.onCreate()
 
-        preloadSystemLibraries()
-
         // Allows to find resource streams not closed within GameNative and JavaSteam
         if (BuildConfig.DEBUG) {
             StrictMode.setVmPolicy(
@@ -68,10 +68,15 @@ class PluviaApp : SplitCompatApplication() {
             Timber.plant(ReleaseTree())
         }
 
-        NetworkMonitor.init(this)
-
-        // Init our custom crash handler.
+        // These must be ready before native libraries and environment helpers begin booting.
+        // The process-output observer is persistent across X server screen recreation.
+        DiagnosticSession.initialize(this)
+        ProcessOutputBus.install()
         CrashHandler.initialize(this)
+
+        preloadSystemLibraries()
+
+        NetworkMonitor.init(this)
 
         // Init our datastore preferences.
         PrefManager.init(this)

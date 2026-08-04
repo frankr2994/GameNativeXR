@@ -1,6 +1,8 @@
 package app.gamenative.utils
 
+import app.gamenative.data.SaveFilePattern
 import app.gamenative.enums.PathType
+import app.gamenative.utils.generateSteamApp
 import `in`.dragonbra.javasteam.types.KeyValue
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -915,7 +917,7 @@ class KeyValueUtilsTest {
         val kv = KeyValue.loadFromString(kvString)!!
         val steamApp = kv.generateSteamApp()
 
-        val patterns = steamApp.ufs.saveFilePatterns
+        val patterns: List<SaveFilePattern> = steamApp.ufs.saveFilePatterns
         assertEquals(1, patterns.size)
         assertEquals(PathType.WinProgramData, patterns[0].root)
         assertEquals(true, patterns[0].root.isWindows)
@@ -950,7 +952,7 @@ class KeyValueUtilsTest {
         val kv = KeyValue.loadFromString(kvString)!!
         val steamApp = kv.generateSteamApp()
 
-        val patterns = steamApp.ufs.saveFilePatterns
+        val patterns: List<SaveFilePattern> = steamApp.ufs.saveFilePatterns
         assertEquals(1, patterns.size)
         assertEquals(PathType.SteamUserData, patterns[0].root)
         assertEquals(true, patterns[0].root.isWindows)
@@ -1000,7 +1002,7 @@ class KeyValueUtilsTest {
         val kv = KeyValue.loadFromString(kvString)!!
         val steamApp = kv.generateSteamApp()
 
-        val patterns = steamApp.ufs.saveFilePatterns
+        val patterns: List<SaveFilePattern> = steamApp.ufs.saveFilePatterns
         assertEquals(1, patterns.size)
         assertEquals(PathType.WinAppDataRoaming, patterns[0].root)
         assertEquals("MyGame/saves", patterns[0].path)
@@ -1046,7 +1048,7 @@ class KeyValueUtilsTest {
         val kv = KeyValue.loadFromString(kvString)!!
         val steamApp = kv.generateSteamApp()
 
-        val patterns = steamApp.ufs.saveFilePatterns
+        val patterns: List<SaveFilePattern> = steamApp.ufs.saveFilePatterns
         assertEquals(1, patterns.size)
         assertEquals(PathType.WinMyDocuments, patterns[0].root)
         assertEquals("saves", patterns[0].path)

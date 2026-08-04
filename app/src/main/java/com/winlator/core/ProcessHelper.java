@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class ProcessHelper {
     public static final boolean PRINT_DEBUG = true; // FIXME change to false
-    private static final ArrayList<Callback<String>> debugCallbacks = new ArrayList<>();
     private static final byte SIGCONT = 18;
     private static final byte SIGSTOP = 19;
     private static final byte SIGTERM = 15;
@@ -317,13 +316,8 @@ public abstract class ProcessHelper {
             pid = pidField.getInt(process);
             pidField.setAccessible(false);
 
-            if (!debugCallbacks.isEmpty()) {
-                createDebugThread(process.getInputStream());
-                createDebugThread(process.getErrorStream());
-            }
-//            Uncomment the following lines to see logs from wine
-//            createDebugThread(process.getInputStream(), "STDOUT", pid);
-//            createDebugThread(process.getErrorStream(), "STDERR", pid);
+            createDebugThread(process.getInputStream(), "STDOUT", pid);
+            createDebugThread(process.getErrorStream(), "STDERR", pid);
 
             if (terminationCallback != null) createWaitForThread(process, terminationCallback);
         }
@@ -344,10 +338,17 @@ public abstract class ProcessHelper {
             }
 
             java.lang.Process process = Runtime.getRuntime().exec(splitCommand(command), envp, workingDir);
-            if (!debugCallbacks.isEmpty()) {
-                createDebugThread(process.getInputStream());
-                createDebugThread(process.getErrorStream());
-            }
+            
+            int pid = -1;
+            try {
+                Field pidField = process.getClass().getDeclaredField("pid");
+                pidField.setAccessible(true);
+                pid = pidField.getInt(process);
+                pidField.setAccessible(false);
+            } catch (Exception ignored) {}
+            
+            createDebugThread(process.getInputStream(), "STDOUT", pid);
+            createDebugThread(process.getErrorStream(), "STDERR", pid);
 
             return process;
         } catch (Exception e) {
@@ -414,17 +415,21 @@ public abstract class ProcessHelper {
         return processes;
     }
 
-    private static void createDebugThread(final InputStream inputStream) {
+
+
+    private static void createDebugThread(final InputStream inputStream, final String streamType, final int pid) {
         Executors.newSingleThreadExecutor().execute(() -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (PRINT_DEBUG) System.out.println(line);
-                    synchronized (debugCallbacks) {
-                        if (!debugCallbacks.isEmpty()) {
-                            for (Callback<String> callback : debugCallbacks) callback.call(line);
-                        }
+                    if (streamType != null && pid != -1) {
+                        Log.d("ProcessOutput", "[PID:" + pid + "][" + streamType + "] " + line);
+                    } else {
+                        Log.d("ProcessOutput", line);
                     }
+
+                    if (PRINT_DEBUG) System.out.println(line);
+                    app.gamenative.diagnostics.ProcessOutputBus.publish(pid, "guest_process", streamType != null ? streamType : "UNKNOWN", line);
                 }
             }
             catch (java.io.InterruptedIOException e) {
@@ -433,31 +438,6 @@ public abstract class ProcessHelper {
             catch (IOException e) {
                 Log.e("ProcessHelper", "Error on debug thread: " + e);
             }
-        });
-    }
-
-    private static void createDebugThread(final InputStream inputStream, final String streamType, final int pid) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Always log to debug log
-                    if (streamType != null && pid != -1) {
-                        Log.d("ProcessOutput", "[PID:" + pid + "][" + streamType + "] " + line);
-                    } else {
-                        // Always log even if streamType/pid not provided
-                        Log.d("ProcessOutput", line);
-                    }
-
-                    if (PRINT_DEBUG) System.out.println(line);
-                    synchronized (debugCallbacks) {
-                        if (!debugCallbacks.isEmpty()) {
-                            for (Callback<String> callback : debugCallbacks) callback.call(line);
-                        }
-                    }
-                }
-            }
-            catch (IOException e) {}
         });
     }
 
@@ -477,23 +457,7 @@ public abstract class ProcessHelper {
         });
     }
 
-    public static void removeAllDebugCallbacks() {
-        synchronized (debugCallbacks) {
-            debugCallbacks.clear();
-        }
-    }
 
-    public static void addDebugCallback(Callback<String> callback) {
-        synchronized (debugCallbacks) {
-            if (!debugCallbacks.contains(callback)) debugCallbacks.add(callback);
-        }
-    }
-
-    public static void removeDebugCallback(Callback<String> callback) {
-        synchronized (debugCallbacks) {
-            debugCallbacks.remove(callback);
-        }
-    }
 
     public static String[] splitCommand(String command) {
         ArrayList<String> result = new ArrayList<>();

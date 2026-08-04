@@ -94,6 +94,9 @@ import app.gamenative.data.LaunchInfo
 import app.gamenative.data.LibraryItem
 import app.gamenative.data.ShooterModeConfig
 import app.gamenative.data.SteamApp
+import app.gamenative.diagnostics.DiagnosticSession
+import app.gamenative.diagnostics.DiagnosticSeverity
+import app.gamenative.diagnostics.ProcessOutputBus
 import app.gamenative.events.AndroidEvent
 import app.gamenative.events.SteamEvent
 import app.gamenative.ui.enums.Orientation
@@ -1574,8 +1577,8 @@ fun XServerScreen(
             showPlayingBlockedDialog = true
         }
     }
-    val debugCallback = Callback<String> { outputLine ->
-        Timber.i(outputLine ?: "")
+    val debugSubscriber = app.gamenative.diagnostics.ProcessOutputSubscriber { record ->
+        Timber.i(record.line)
     }
 
     DisposableEffect(Unit) {
@@ -1585,7 +1588,7 @@ fun XServerScreen(
         PluviaApp.events.on<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
         PluviaApp.events.on<SteamEvent.ForceCloseApp, Unit>(onForceCloseApp)
         PluviaApp.events.on<SteamEvent.PlayingBlocked, Unit>(onPlayingBlocked)
-        ProcessHelper.addDebugCallback(debugCallback)
+        ProcessOutputBus.subscribe(debugSubscriber)
 
         onDispose {
             PluviaApp.events.off<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
@@ -1594,7 +1597,7 @@ fun XServerScreen(
             PluviaApp.events.off<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
             PluviaApp.events.off<SteamEvent.ForceCloseApp, Unit>(onForceCloseApp)
             PluviaApp.events.off<SteamEvent.PlayingBlocked, Unit>(onPlayingBlocked)
-            ProcessHelper.removeDebugCallback(debugCallback)
+            ProcessOutputBus.unsubscribe(debugSubscriber)
         }
     }
 
@@ -2148,6 +2151,19 @@ fun XServerScreen(
                             )
 
                             Timber.i("Doing things once")
+                            ProcessOutputBus.setVerboseCaptureEnabled(diagnostics || BuildConfig.DEBUG)
+                            DiagnosticSession.beginLaunch(
+                                appId = appId,
+                                fields = mapOf(
+                                    "xrEnabled" to XrActivity.isEnabled(),
+                                    "bootToContainer" to bootToContainer,
+                                    "testGraphics" to testGraphics,
+                                    "diagnosticsRequested" to diagnostics,
+                                    "containerVariant" to container.getContainerVariant(),
+                                    "graphicsDriver" to xServerState.value.graphicsDriver,
+                                    "dxwrapper" to xServerState.value.dxwrapper,
+                                ),
+                            )
                             val envVars = EnvVars()
 
                             runBlocking {
@@ -2209,6 +2225,16 @@ fun XServerScreen(
                             }
                         } catch (e: Exception) {
                             Timber.e(e, "Error during wine setup operations")
+                            DiagnosticSession.recordThrowable(
+                                subsystem = "launch",
+                                eventName = "environment_setup_failed",
+                                throwable = e,
+                                fields = mapOf("appId" to appId),
+                            )
+                            DiagnosticSession.endLaunch(
+                                outcome = "environment_setup_failed",
+                                fields = mapOf("failureType" to e.javaClass.name),
+                            )
                             try {
                                 PluviaApp.xEnvironment?.stopEnvironmentComponents()
                             } catch (cleanupEx: Exception) {
@@ -3529,6 +3555,16 @@ private fun setupXEnvironment(
     onGameLaunchError: ((String) -> Unit)? = null,
     offline: Boolean = false
 ): XEnvironment {
+    DiagnosticSession.record(
+        subsystem = "environment",
+        eventName = "environment_setup_started",
+        fields = mapOf(
+            "appId" to appId,
+            "bootToContainer" to bootToContainer,
+            "testGraphics" to testGraphics,
+            "diagnosticsRequested" to diagnostics,
+        ),
+    )
     ProcessHelper.hardKillStaleWineProcesses()
 
     val gameSource = ContainerUtils.extractGameSourceFromContainerId(appId)
@@ -3567,8 +3603,6 @@ private fun setupXEnvironment(
         envVars.put("SDL_ALLOW_TOPMOST", "0")
         envVars.put("SDL_MOUSE_FOCUS_CLICKTHROUGH", "1")
     }
-
-    ProcessHelper.removeAllDebugCallbacks()
 
     // Setup TrackIR emulation
     try {
@@ -3611,11 +3645,12 @@ private fun setupXEnvironment(
         if (logFile.exists()) logFile.delete()
     }
 
-    ProcessHelper.addDebugCallback { line ->
+    val debugCaptureSubscriber = app.gamenative.diagnostics.ProcessOutputSubscriber { record ->
         if (captureLogs) {
-            logFile?.appendText(line + "\n")
+            logFile?.appendText(record.line + "\n")
         }
     }
+    ProcessOutputBus.subscribe(debugCaptureSubscriber)
 
     val rootPath = imageFs.getRootDir().getPath()
     FileUtils.clear(imageFs.getTmpDir())
@@ -3657,6 +3692,19 @@ private fun setupXEnvironment(
         }
 
         val wow64Mode = container.isWoW64Mode
+        DiagnosticSession.record(
+            subsystem = "environment",
+            eventName = "guest_backend_selected",
+            fields = mapOf(
+                "backend" to if (guestProgramLauncherComponent is GlibcProgramLauncherComponent) "glibc" else "bionic",
+                "containerVariant" to container.getContainerVariant(),
+                "wineVersion" to container.wineVersion,
+                "wow64Mode" to wow64Mode,
+                "box86Version" to container.box86Version,
+                "box64Version" to container.box64Version,
+                "fexCorePreset" to container.fexCorePreset,
+            ),
+        )
         guestProgramLauncherComponent.setContainer(container);
         guestProgramLauncherComponent.setWineInfo(xServerState.value.wineInfo);
         if (guestProgramLauncherComponent is BionicProgramLauncherComponent && container.isLaunchBionicSteam) {
@@ -3809,6 +3857,16 @@ private fun setupXEnvironment(
     guestProgramLauncherComponent.envVars = envVars
 
     val gameTerminationCallback = Callback<Int> { status ->
+        DiagnosticSession.record(
+            severity = if (status == 0) DiagnosticSeverity.INFO else DiagnosticSeverity.ERROR,
+            subsystem = "launch",
+            eventName = "guest_process_terminated",
+            fields = mapOf("appId" to appId, "exitStatus" to status),
+        )
+        DiagnosticSession.endLaunch(
+            outcome = if (status == 0) "guest_exited" else "guest_failed",
+            fields = mapOf("appId" to appId, "exitStatus" to status),
+        )
         if (status != 0) {
             Timber.e("Guest program terminated with status: $status")
             onGameLaunchError?.invoke("Game terminated with error status: $status")

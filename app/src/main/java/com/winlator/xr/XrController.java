@@ -35,6 +35,21 @@ import com.winlator.xserver.Keyboard;
 import com.winlator.xserver.Pointer;
 import com.winlator.xserver.XKeycode;
 
+import com.winlator.xr.input.PreGameInputRouter;
+import com.winlator.xr.input.PreGameInputRouterImpl;
+import com.winlator.xr.input.InputRoutingResult;
+import com.winlator.xr.input.RoutedInputAction;
+import com.winlator.xr.input.ControllerHand;
+import com.winlator.xr.input.ControllerInputFrame;
+import com.winlator.xr.input.XrControllerInputAdapter;
+import com.winlator.xr.input.InputRouterMode;
+import com.winlator.xr.input.RayPointerMapper;
+import com.winlator.xr.input.RayPointerMapperImpl;
+import com.winlator.xr.input.ControllerPointerRay;
+import com.winlator.xr.input.VirtualScreenSurface;
+import com.winlator.xr.input.PointerVector3;
+import com.winlator.xr.input.RayPointerHit;
+
 import java.util.Vector;
 
 public class XrController {
@@ -56,8 +71,13 @@ public class XrController {
     private final Vector<HapticServiceClient> externalHapticsServiceClients = new Vector<>();
     private final Vector<Pair<String, String>> externalHapticsServiceDetails = new Vector<>();
 
+    private final PreGameInputRouter inputRouter;
+    private final RayPointerMapper rayPointerMapper = new RayPointerMapperImpl();
+    private long lastKeyboardToggleTime = 0;
+
     public XrController() {
         instance = XrActivity.getInstance();
+        inputRouter = new PreGameInputRouterImpl(ControllerHand.RIGHT, this::onRoute);
         mouseSpeed = PreferenceManager.getDefaultSharedPreferences(instance).getFloat("cursor_speed", 1.0f);
 
         externalHapticsServiceDetails.add(Pair.create(HapticsConstants.BHAPTICS_PACKAGE, HapticsConstants.BHAPTICS_ACTION_FILTER));
@@ -80,39 +100,141 @@ public class XrController {
         }
     }
 
-    public boolean updateAndroidInput(boolean[] buttons) {
-        // Get OpenXR input
-        XrInterface.ControllerButton primaryPress = XrActivity.mouseLeftHanded ? XrInterface.ControllerButton.L_THUMBSTICK_PRESS : XrInterface.ControllerButton.R_THUMBSTICK_PRESS;
-        XrInterface.ControllerButton primaryTrigger = XrActivity.mouseLeftHanded ? XrInterface.ControllerButton.L_TRIGGER : XrInterface.ControllerButton.R_TRIGGER;
-        XrInterface.ControllerButton primaryUp = XrActivity.mouseLeftHanded ? XrInterface.ControllerButton.L_THUMBSTICK_UP : XrInterface.ControllerButton.R_THUMBSTICK_UP;
-        XrInterface.ControllerButton primaryDown = XrActivity.mouseLeftHanded ? XrInterface.ControllerButton.L_THUMBSTICK_DOWN : XrInterface.ControllerButton.R_THUMBSTICK_DOWN;
-        XrInterface.ControllerButton primaryLeft = XrActivity.mouseLeftHanded ? XrInterface.ControllerButton.L_THUMBSTICK_LEFT : XrInterface.ControllerButton.R_THUMBSTICK_LEFT;
-        XrInterface.ControllerButton primaryRight = XrActivity.mouseLeftHanded ? XrInterface.ControllerButton.L_THUMBSTICK_RIGHT : XrInterface.ControllerButton.R_THUMBSTICK_RIGHT;
-
-        // Pass the input to the Android UI
+    public boolean updateAndroidInput(boolean[] buttons, float[] axes) {
+        // Define mode selection policy based on X-server / Android dialog state
+        InputRouterMode newMode;
         XrContentDialog dialog = XrContentDialog.getFrontInstance();
         if (dialog != null) {
-            if (getButtonClicked(buttons, primaryPress)) instance.runOnUiThread(dialog::onBackPressed);
-            if (getButtonClicked(buttons, primaryUp)) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_UP));
-            if (getButtonClicked(buttons, primaryDown)) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_DOWN));
-            if (getButtonClicked(buttons, primaryTrigger)) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_ENTER));
-            if (getButtonClicked(buttons, primaryLeft)) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_LEFT));
-            if (getButtonClicked(buttons, primaryRight)) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_RIGHT));
-            System.arraycopy(buttons, 0, lastButtons, 0, buttons.length);
+            newMode = InputRouterMode.ANDROID_OVERLAY;
+        } else if (XrActivity.isVR || XrActivity.isImmersive) {
+            newMode = InputRouterMode.GAME_INPUT;
+        } else {
+            newMode = InputRouterMode.GUEST_POINTER;
+        }
+
+        ControllerInputFrame frame = XrControllerInputAdapter.INSTANCE.fromOpenXrButtons(buttons, true, true);
+        inputRouter.setMode(newMode);
+        InputRoutingResult result = inputRouter.processControllerInput(frame);
+
+        // Ray mapping for visible reticle in pointer modes
+        if (result.getMode() == InputRouterMode.GUEST_POINTER || result.getMode() == InputRouterMode.GUEST_TEXT) {
+            float yaw = axes[XrActivity.mouseLeftHanded ? XrInterface.ControllerAxis.L_YAW.ordinal() : XrInterface.ControllerAxis.R_YAW.ordinal()];
+            float pitch = axes[XrActivity.mouseLeftHanded ? XrInterface.ControllerAxis.L_PITCH.ordinal() : XrInterface.ControllerAxis.R_PITCH.ordinal()];
+            PointerVector3 origin = new PointerVector3(0f, 0f, 0f);
+            ControllerPointerRay ray = ControllerPointerRay.Companion.fromYawPitch(origin, yaw, pitch);
+            
+            float aspect = (float)instance.getXServer().screenInfo.width / (float)instance.getXServer().screenInfo.height;
+            float distance = XrActivity.getDistance();
+            VirtualScreenSurface surface = VirtualScreenSurface.Companion.facingViewer(
+                distance,
+                distance * 1.5f,
+                (distance * 1.5f) / aspect,
+                instance.getXServer().screenInfo.width,
+                instance.getXServer().screenInfo.height
+            );
+            
+            RayPointerHit hit = rayPointerMapper.map(ray, surface);
+            if (hit != null) {
+                smoothedMouse[0] = hit.getPixelX();
+                smoothedMouse[1] = hit.getPixelY();
+                // Ensure mouse pointer is updated immediately for the reticle
+                Pointer mouse = instance.getXServer().pointer;
+                mouse.setX((int) smoothedMouse[0]);
+                mouse.setY((int) smoothedMouse[1]);
+                mouse.triggerOnPointerMove(mouse.getX(), mouse.getY());
+            }
+        }
+
+        // Automatic guest text-focus detection (heuristic debounced)
+        if (result.getMode() == InputRouterMode.GUEST_POINTER && detectGuestTextFocus()) {
+            long now = System.currentTimeMillis();
+            if (now - lastKeyboardToggleTime > 1000) {
+                lastKeyboardToggleTime = now;
+                inputRouter.setMode(InputRouterMode.GUEST_TEXT);
+                instance.runOnUiThread(() -> new com.winlator.xr.ui.XrKeyboardOverlay(instance, false).show());
+            }
+        }
+
+        System.arraycopy(buttons, 0, lastButtons, 0, buttons.length);
+        System.arraycopy(axes, 0, lastAxes, 0, axes.length);
+
+        if (!result.contains(RoutedInputAction.FORWARD_TO_GAME_INPUT)) {
             lastDialogShown = System.currentTimeMillis();
             instance.nativeSetUseVR(false);
             XrActivity.isVR = false;
-            return false;
-        } else if (getButtonClicked(buttons, primaryPress)) {
-            instance.runOnUiThread(() -> new XrDialog(instance).show());
         }
 
-        // Block input shortly after dialog closed
-        if (System.currentTimeMillis() - lastDialogShown < 500) {
-            System.arraycopy(buttons, 0, lastButtons, 0, buttons.length);
-            return false;
+        return result.contains(RoutedInputAction.FORWARD_TO_GAME_INPUT);
+    }
+
+    private boolean detectGuestTextFocus() {
+        // TODO: Replace with confirmed XServer or IME guest text focus state
+        return false;
+    }
+
+    private void onRoute(InputRoutingResult result) {
+        XrContentDialog dialog = XrContentDialog.getFrontInstance();
+        for (RoutedInputAction action : result.getActions()) {
+            switch (action) {
+                case ANDROID_CONFIRM:
+                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_ENTER));
+                    break;
+                case ANDROID_BACK:
+                    if (dialog != null) instance.runOnUiThread(dialog::onBackPressed);
+                    break;
+                case ANDROID_NAV_UP:
+                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_UP));
+                    break;
+                case ANDROID_NAV_DOWN:
+                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_DOWN));
+                    break;
+                case ANDROID_NAV_LEFT:
+                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_LEFT));
+                    break;
+                case ANDROID_NAV_RIGHT:
+                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_RIGHT));
+                    break;
+                case OPEN_SYSTEM_MENU:
+                    instance.runOnUiThread(() -> new XrDialog(instance).show());
+                    break;
+                case CLOSE_SYSTEM_MENU:
+                    if (dialog != null) instance.runOnUiThread(dialog::onBackPressed);
+                    break;
+                case REQUEST_VISIBLE_KEYBOARD:
+                    lastKeyboardToggleTime = System.currentTimeMillis();
+                    instance.runOnUiThread(() -> new com.winlator.xr.ui.XrKeyboardOverlay(instance, false).show());
+                    break;
+                case CLOSE_VISIBLE_KEYBOARD:
+                    if (dialog instanceof com.winlator.xr.ui.XrKeyboardOverlay) {
+                        instance.runOnUiThread(dialog::onBackPressed);
+                    }
+                    break;
+                case GUEST_POINTER_PRIMARY_DOWN:
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_LEFT, true);
+                    break;
+                case GUEST_POINTER_PRIMARY_UP:
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_LEFT, false);
+                    break;
+                case GUEST_POINTER_SECONDARY_DOWN:
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_RIGHT, true);
+                    break;
+                case GUEST_POINTER_SECONDARY_UP:
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_RIGHT, false);
+                    break;
+                case GUEST_SCROLL_UP:
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_SCROLL_UP, true);
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_SCROLL_UP, false);
+                    break;
+                case GUEST_SCROLL_DOWN:
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_SCROLL_DOWN, true);
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_SCROLL_DOWN, false);
+                    break;
+                case RELEASE_ALL_GUEST_INPUT:
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_LEFT, false);
+                    instance.getXServer().pointer.setButton(Pointer.Button.BUTTON_RIGHT, false);
+                    break;
+            }
         }
-        return true;
     }
 
     public void updateHaptics(XrAPI xrAPI) {

@@ -24,6 +24,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
@@ -40,7 +41,12 @@ import com.winlator.contentdialog.ContentDialog;
 
 import app.gamenative.R;
 
+import java.util.ArrayList;
+
 public class XrDialog extends ContentDialog {
+
+    private final ArrayList<View> navigationItems = new ArrayList<>();
+    private int selectedNavigationIndex;
 
     public enum MenuItem {
         SHOW_KEYBOARD,
@@ -124,9 +130,42 @@ public class XrDialog extends ContentDialog {
         cbPlayerXRMouseLightgun.setOnCheckedChangeListener((compoundButton, b) -> applyAll.run());
 
         findViewById(R.id.BTCancel).setVisibility(View.GONE);
-        findViewById(R.id.BTConfirm).setVisibility(View.VISIBLE);
-        findViewById(R.id.BTConfirm).setOnClickListener(v -> dismiss());
+        View confirmButton = findViewById(R.id.BTConfirm);
+        confirmButton.setVisibility(View.VISIBLE);
+        confirmButton.setOnClickListener(v -> dismiss());
         setOnConfirmCallback(this::dismiss);
+
+        addNavigationItem(cbSBS);
+        addNavigationItem(cbImmersiveMode);
+        addNavigationItem(cbCurvedScreen);
+        addNavigationItem(cbPassthrough);
+        addNavigationItem(cbPlayerXRMouse);
+        addNavigationItem(cbPlayerXRMouseLeftHanded);
+        addNavigationItem(cbPlayerXRMouseLightgun);
+        addNavigationItem(confirmButton);
+        selectNavigationItem(0);
+    }
+
+    @Override
+    public void onKeyAction(int keyCode) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_DPAD_UP:
+                moveNavigation(-1);
+                return;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                moveNavigation(1);
+                return;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+                if (!navigationItems.isEmpty()) {
+                    navigationItems.get(selectedNavigationIndex).performClick();
+                }
+                return;
+            default:
+                super.onKeyAction(keyCode);
+        }
     }
 
     private void addMenuItem(Context context, GridLayout grid, int iconRes, int titleRes, MenuItem itemId, float alpha) {
@@ -167,6 +206,39 @@ public class XrDialog extends ContentDialog {
         layout.addView(text);
 
         grid.addView(layout);
+        addNavigationItem(layout);
+    }
+
+    private void addNavigationItem(View view) {
+        view.setFocusable(true);
+        view.setFocusableInTouchMode(true);
+        navigationItems.add(view);
+    }
+
+    private void moveNavigation(int direction) {
+        if (navigationItems.isEmpty()) return;
+        int count = navigationItems.size();
+        for (int attempt = 1; attempt <= count; attempt++) {
+            int candidate = Math.floorMod(selectedNavigationIndex + direction * attempt, count);
+            if (navigationItems.get(candidate).isEnabled()) {
+                selectNavigationItem(candidate);
+                return;
+            }
+        }
+    }
+
+    private void selectNavigationItem(int index) {
+        if (navigationItems.isEmpty()) return;
+        selectedNavigationIndex = Math.floorMod(index, navigationItems.size());
+        for (int i = 0; i < navigationItems.size(); i++) {
+            View view = navigationItems.get(i);
+            boolean selected = i == selectedNavigationIndex;
+            view.setSelected(selected);
+            view.setActivated(selected);
+            view.setBackgroundColor(selected ? Color.argb(80, 33, 150, 243) : Color.TRANSPARENT);
+        }
+        navigationItems.get(selectedNavigationIndex).requestFocus();
+        redraw();
     }
 
     private int dpToPx(float dp, Context context){

@@ -1,6 +1,8 @@
 package app.gamenative
 
 import android.content.Context
+import app.gamenative.diagnostics.DiagnosticSession
+import app.gamenative.diagnostics.SecretRedactor
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -90,7 +92,13 @@ class CrashHandler(
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
-        PrefManager.recentlyCrashed = true
+        runCatching { PrefManager.recentlyCrashed = true }
+        DiagnosticSession.recordThrowable(
+            subsystem = "crash",
+            eventName = "uncaught_exception",
+            throwable = throwable,
+            fields = mapOf("threadName" to thread.name),
+        )
 
         saveCrashToFile(throwable)
         defaultHandler?.uncaughtException(thread, throwable)
@@ -101,7 +109,7 @@ class CrashHandler(
             val stackTrace = StringWriter().apply {
                 val pw = PrintWriter(this)
                 throwable.printStackTrace(pw)
-            }.toString()
+            }.toString().let(SecretRedactor::redact)
 
             val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
@@ -116,20 +124,27 @@ class CrashHandler(
                 appendLine()
                 appendLine("---------- Cause ----------")
                 appendLine("Exception: ${throwable.javaClass.name}")
-                appendLine("Message: ${throwable.message}")
+                appendLine("Message: ${SecretRedactor.redact(throwable.message)}")
                 appendLine()
                 appendLine("---------- Stack Trace ----------")
                 appendLine(stackTrace)
                 appendLine()
                 appendLine("---------- Logcat ----------")
-                appendLine(recentLogcat)
+                appendLine(SecretRedactor.redact(recentLogcat))
+                appendLine()
+                appendLine("---------- Diagnostic Session ----------")
+                appendLine(DiagnosticSession.recentSummary())
             }
 
             File(crashFileDir, "pluvia_crash_$timestamp.txt").writeText(crashReport)
 
             cleanupOldCrashFiles()
         } catch (e: Exception) {
-            defaultHandler?.uncaughtException(Thread.currentThread(), throwable)
+            DiagnosticSession.recordThrowable(
+                subsystem = "crash",
+                eventName = "crash_report_write_failed",
+                throwable = e,
+            )
         }
     }
 }

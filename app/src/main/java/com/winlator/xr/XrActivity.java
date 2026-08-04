@@ -43,6 +43,7 @@ import com.winlator.xr.api.XrAPI;
 import com.winlator.xr.runtime.MetaQuest;
 import com.winlator.xr.runtime.Pico;
 import com.winlator.xr.ui.XrDialog;
+import com.winlator.xr.ui.XrKeyboardOverlay;
 import com.winlator.xserver.Drawable;
 import com.winlator.xserver.XLock;
 import com.winlator.xserver.XServer;
@@ -166,18 +167,9 @@ public class XrActivity extends MainActivity {
                 finish();
                 return true;
             case SHOW_KEYBOARD:
-                if (xrKeyboard == null) {
-                    xrKeyboard = new XrKeyboard(editText);
-                }
-                new Thread(() -> {
-                    xrKeyboard.sleep(250); //ensure onWindowFocusChanged was called
-                    runOnUiThread(() -> {
-                        isVR = false;
-                        isAER = false;
-                        isImmersive = false;
-                        xrKeyboard.show();
-                    });
-                }).start();
+                // A visible XR dialog is controller-operable; Android IME remains a compatibility
+                // helper for older paths but is not required to enter guest text.
+                new XrKeyboardOverlay(this, false).show();
                 return true;
             case TASK_MANAGER:
                 isImmersive = false;
@@ -338,7 +330,7 @@ public class XrActivity extends MainActivity {
 
         // Android UI input
         lastActive = System.currentTimeMillis();
-        if (!xrController.updateAndroidInput(buttons))
+        if (!xrController.updateAndroidInput(buttons, axes))
             return;
 
         // Switch immersive/SBS mode
