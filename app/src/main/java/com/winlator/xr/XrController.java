@@ -168,7 +168,31 @@ public class XrController {
     }
 
     private boolean detectGuestTextFocus() {
-        // TODO: Replace with confirmed XServer or IME guest text focus state
+        if (instance.getXServer() == null) return false;
+        
+        com.winlator.xserver.Window focusedWindow = instance.getXServer().windowManager.getFocusedWindow();
+        if (focusedWindow == null) return false;
+
+        // Heuristic 1: Known launcher login windows
+        String name = focusedWindow.getName();
+        if (name != null) {
+            String lowerName = name.toLowerCase();
+            if (lowerName.contains("login") || lowerName.contains("sign in") || lowerName.contains("password") || lowerName.contains("account")) {
+                return true;
+            }
+        }
+
+        // Heuristic 2: Wine IME or Edit class if mapped to an X11 window
+        String className = focusedWindow.getClassName();
+        if (className != null) {
+            String lowerClass = className.toLowerCase();
+            if (lowerClass.equals("edit") || lowerClass.equals("ime") || lowerClass.equals("wineime")) {
+                return true;
+            }
+        }
+
+        // As per architecture plan: if a control cannot be identified reliably, report UNKNOWN (false)
+        // rather than repeatedly opening the keyboard. Manual opening remains the reliable fallback.
         return false;
     }
 
