@@ -38,7 +38,7 @@ data class LaunchPlan(
     val dxwrapperConfig: ResolvedSetting<String>,
     val resolvedEnvVars: Map<String, String>,
     val resolvedDllOverrides: Map<String, String>,
-    val trackingMode: String, // "FLAT_3DOF", "NATIVE_OPENXR_6DOF", "MODDED_6DOF"
+    val trackingMode: app.gamenative.launch.vr.TrackingMode,
     val activeModId: String? = null,
     val resolvedCommandArgs: String = ""
 ) {

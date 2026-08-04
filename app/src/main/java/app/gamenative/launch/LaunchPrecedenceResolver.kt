@@ -185,11 +185,14 @@ class LaunchPrecedenceResolverImpl : LaunchPrecedenceResolver {
         modInput?.requiredDllOverrides?.let { mergedDlls.putAll(it) }
 
         // Resolve tracking mode
-        val resolvedTracking = when {
-            modInput != null -> "MODDED_6DOF"
-            exeIdentity.hasOpenXRImport || exeIdentity.hasOpenVRImport -> "NATIVE_OPENXR_6DOF"
-            else -> "FLAT_3DOF"
-        }
+        val trackingResolver = app.gamenative.launch.vr.TrackingModeResolverImpl()
+        val trackingDecision = trackingResolver.resolveTrackingMode(
+            request = request,
+            executableIdentity = exeIdentity,
+            hasVrModManifest = modInput != null,
+            isNativeVrSupported = exeIdentity.hasOpenXRImport || exeIdentity.hasOpenVRImport
+        )
+        val resolvedTracking = trackingDecision.mode
 
         return LaunchPlan(
             launchId = request.launchId,

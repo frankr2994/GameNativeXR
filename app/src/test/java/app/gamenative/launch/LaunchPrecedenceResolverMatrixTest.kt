@@ -105,7 +105,7 @@ class LaunchPrecedenceResolverMatrixTest {
         assertEquals(SettingSource.COMPATIBILITY_PROFILE, plan.graphicsDriverConfig.source)
 
         // Level 4 VR Mod Tracking Mode & DLL Overrides
-        assertEquals("MODDED_6DOF", plan.trackingMode)
+        assertEquals(app.gamenative.launch.vr.TrackingMode.MODDED_6DOF, plan.trackingMode)
         assertEquals("l4d2_vr_mod", plan.activeModId)
         assertEquals("n,b", plan.resolvedDllOverrides["openvr_api"])
         assertEquals("n", plan.resolvedDllOverrides["dxgi"])
@@ -121,20 +121,20 @@ class LaunchPrecedenceResolverMatrixTest {
         // Case 1: Mod present -> MODDED_6DOF
         val modInput = VrModRequirementInput(modId = "some_mod")
         val planMod = resolver.resolvePlan(mockRequest, mockExeIdentity, questHardware, null, modInput, null)
-        assertEquals("MODDED_6DOF", planMod.trackingMode)
+        assertEquals(app.gamenative.launch.vr.TrackingMode.MODDED_6DOF, planMod.trackingMode)
 
         // Case 2: OpenXR import present -> NATIVE_OPENXR_6DOF
         val openXrExe = mockExeIdentity.copy(hasOpenXRImport = true)
         val planOpenXR = resolver.resolvePlan(mockRequest, openXrExe, questHardware, null, null, null)
-        assertEquals("NATIVE_OPENXR_6DOF", planOpenXR.trackingMode)
+        assertEquals(app.gamenative.launch.vr.TrackingMode.NATIVE_OPENXR_6DOF, planOpenXR.trackingMode)
 
         // Case 3: OpenVR import present -> NATIVE_OPENXR_6DOF
         val openVrExe = mockExeIdentity.copy(hasOpenVRImport = true)
         val planOpenVR = resolver.resolvePlan(mockRequest, openVrExe, questHardware, null, null, null)
-        assertEquals("NATIVE_OPENXR_6DOF", planOpenVR.trackingMode)
+        assertEquals(app.gamenative.launch.vr.TrackingMode.NATIVE_OPENXR_6DOF, planOpenVR.trackingMode)
 
         // Case 4: No VR imports, no mod -> FLAT_3DOF
         val planFlat = resolver.resolvePlan(mockRequest, mockExeIdentity, questHardware, null, null, null)
-        assertEquals("FLAT_3DOF", planFlat.trackingMode)
+        assertEquals(app.gamenative.launch.vr.TrackingMode.FLAT_3DOF, planFlat.trackingMode)
     }
 }
