@@ -120,6 +120,29 @@ class PreGameInputRouterTest {
     }
 
     @Test
+    fun systemMenuChordWorksWhenGripIsPressedBeforeTheThumbstick() {
+        val router = PreGameInputRouterImpl()
+        router.setMode(InputRouterMode.GUEST_POINTER)
+        router.processControllerInput(frame(rightConnection = ControllerConnectionState.CONNECTED))
+
+        router.processControllerInput(
+            frame(
+                rightConnection = ControllerConnectionState.CONNECTED,
+                right = setOf(ControllerControl.GRIP),
+            ),
+        )
+        val result = router.processControllerInput(
+            frame(
+                rightConnection = ControllerConnectionState.CONNECTED,
+                right = setOf(ControllerControl.GRIP, ControllerControl.THUMBSTICK_PRESS),
+            ),
+        )
+
+        assertEquals(InputRouterMode.SYSTEM_MENU, result.mode)
+        assertTrue(result.contains(RoutedInputAction.OPEN_SYSTEM_MENU))
+    }
+
+    @Test
     fun changingActiveHandReleasesGuestInputBeforeUsingTheFallbackHand() {
         val router = PreGameInputRouterImpl(preferredHand = ControllerHand.RIGHT)
         router.setMode(InputRouterMode.GUEST_POINTER)

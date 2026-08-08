@@ -10,27 +10,50 @@ interface XrInputSink {
     fun injectKeyRelease(keycode: XKeycode)
 }
 
+/**
+ * The user's explicit out-of-game input target. This persists while an Android overlay is open so
+ * that dismissing a keyboard or system dialog returns to the same guest interaction mode.
+ */
+enum class GuestUiTarget {
+    OFF,
+    POINTER,
+    NAVIGATION,
+}
+
 class XrLivePolicy(
     val router: PreGameInputRouter,
     private val sink: XrInputSink
 ) {
-    var isGuestUIMode = false
+    var guestUiTarget: GuestUiTarget = GuestUiTarget.OFF
         private set
 
-    fun toggleGuestUI() {
-        isGuestUIMode = !isGuestUIMode
+    /** Enters pointer mode or returns to normal game input when pointer mode is already active. */
+    fun toggleGuestPointer() {
+        guestUiTarget = if (guestUiTarget == GuestUiTarget.POINTER) {
+            GuestUiTarget.OFF
+        } else {
+            GuestUiTarget.POINTER
+        }
+    }
+
+    /**
+     * Switches between keyboard-style guest navigation and pointer mode. Navigation may be
+     * selected directly from gameplay, while the return target remains pointer mode rather than
+     * accidentally forwarding the gesture into the guest process.
+     */
+    fun toggleGuestNavigation() {
+        guestUiTarget = if (guestUiTarget == GuestUiTarget.NAVIGATION) {
+            GuestUiTarget.POINTER
+        } else {
+            GuestUiTarget.NAVIGATION
+        }
     }
 
     fun updateMode(hasAndroidDialog: Boolean) {
         val newMode = when {
             hasAndroidDialog -> InputRouterMode.ANDROID_OVERLAY
-            isGuestUIMode -> {
-                if (router.currentMode == InputRouterMode.GUEST_TEXT || router.currentMode == InputRouterMode.GUEST_NAVIGATION) {
-                    router.currentMode
-                } else {
-                    InputRouterMode.GUEST_POINTER
-                }
-            }
+            guestUiTarget == GuestUiTarget.POINTER -> InputRouterMode.GUEST_POINTER
+            guestUiTarget == GuestUiTarget.NAVIGATION -> InputRouterMode.GUEST_NAVIGATION
             else -> InputRouterMode.GAME_INPUT
         }
         val result = router.setMode(newMode)

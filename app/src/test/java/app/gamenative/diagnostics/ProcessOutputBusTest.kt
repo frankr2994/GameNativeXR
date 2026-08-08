@@ -11,7 +11,7 @@ class ProcessOutputBusTest {
     fun testOutputIsRedacted() {
         // Reset state
         ProcessOutputBus.setVerboseCaptureEnabled(false)
-        
+
         val records = CopyOnWriteArrayList<ProcessOutputRecord>()
         val subscriber = ProcessOutputSubscriber { record ->
             records.add(record)
@@ -31,7 +31,7 @@ class ProcessOutputBusTest {
             }
 
             assertEquals(4, records.size)
-            
+
             val bearerRecord = records[0]
             assertTrue(bearerRecord.line.contains(SecretRedactor.REDACTED))
             assertEquals(-1, bearerRecord.line.indexOf("secret_token_123"))
@@ -39,14 +39,14 @@ class ProcessOutputBusTest {
             val assignRecord = records[1]
             assertTrue(assignRecord.line.contains(SecretRedactor.REDACTED))
             assertEquals(-1, assignRecord.line.indexOf("super_secret_value"))
-            
+
             val queryRecord = records[2]
             assertTrue(queryRecord.line.contains(SecretRedactor.REDACTED))
             assertEquals(-1, queryRecord.line.indexOf("abc123xyz"))
 
             val normalRecord = records[3]
             assertEquals("Just a normal non-secret line", normalRecord.line)
-            
+
         } finally {
             ProcessOutputBus.unsubscribe(subscriber)
         }
@@ -56,7 +56,7 @@ class ProcessOutputBusTest {
     fun testCaptureLimitExceeded() {
         // Reset state, set limit to 256
         ProcessOutputBus.setVerboseCaptureEnabled(false)
-        
+
         val records = CopyOnWriteArrayList<ProcessOutputRecord>()
         val subscriber = ProcessOutputSubscriber { record ->
             records.add(record)

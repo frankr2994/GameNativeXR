@@ -75,9 +75,11 @@ class PreGameInputRouterImpl(
         previousHandControls = controls
         previousGlobalControls = globalControls
 
-        if (ControllerControl.MENU in globalPressed ||
-            (ControllerControl.THUMBSTICK_PRESS in pressed && ControllerControl.GRIP in controls)
-        ) {
+        val systemMenuChordPressed =
+            ControllerControl.THUMBSTICK_PRESS in controls &&
+                ControllerControl.GRIP in controls &&
+                (ControllerControl.THUMBSTICK_PRESS in pressed || ControllerControl.GRIP in pressed)
+        if (ControllerControl.MENU in globalPressed || systemMenuChordPressed) {
             return toggleSystemMenu()
         }
 
@@ -246,7 +248,7 @@ class PreGameInputRouterImpl(
         // If one is known connected and the other is disconnected, use the connected one
         if (prefState == ControllerConnectionState.CONNECTED && oppState == ControllerConnectionState.DISCONNECTED) return preferredHand
         if (oppState == ControllerConnectionState.CONNECTED && prefState == ControllerConnectionState.DISCONNECTED) return preferredHand.opposite()
-        
+
         // If both are explicitly disconnected, no active hand
         if (prefState == ControllerConnectionState.DISCONNECTED && oppState == ControllerConnectionState.DISCONNECTED) return null
 
@@ -257,10 +259,10 @@ class PreGameInputRouterImpl(
             // "actual controls observed on exactly one hand -> that hand becomes active;"
             if (prefControls.isNotEmpty() && oppControls.isEmpty()) return preferredHand
             if (oppControls.isNotEmpty() && prefControls.isEmpty()) return preferredHand.opposite()
-            
+
             // "controls observed on both hands -> use the configured preferred hand;"
             if (prefControls.isNotEmpty() && oppControls.isNotEmpty()) return preferredHand
-            
+
             // "no controls currently observed -> retain the previously active hand, otherwise use the configured preferred hand..."
             if (activeHand != null && frame.connectionState(activeHand!!) != ControllerConnectionState.DISCONNECTED) {
                 return activeHand

@@ -41,29 +41,64 @@ class XrLivePolicyTest {
     }
 
     @Test
-    fun explicitPointerModeConsumesInput() {
+    fun pointerTargetConsumesInput() {
         val router = PreGameInputRouterImpl()
         val sink = MockSink()
         val policy = XrLivePolicy(router, sink)
 
-        policy.toggleGuestUI() // Turn on guest UI
+        policy.toggleGuestPointer()
         policy.updateMode(hasAndroidDialog = false)
         assertEquals(InputRouterMode.GUEST_POINTER, router.currentMode)
+        assertEquals(GuestUiTarget.POINTER, policy.guestUiTarget)
     }
 
     @Test
-    fun exitFromGuestUIReturnsToLegacyGameInput() {
+    fun pointerTargetCanReturnToLegacyGameInput() {
         val router = PreGameInputRouterImpl()
         val sink = MockSink()
         val policy = XrLivePolicy(router, sink)
 
-        policy.toggleGuestUI()
+        policy.toggleGuestPointer()
         policy.updateMode(hasAndroidDialog = false)
         assertEquals(InputRouterMode.GUEST_POINTER, router.currentMode)
 
-        policy.toggleGuestUI() // Turn off
+        policy.toggleGuestPointer()
         policy.updateMode(hasAndroidDialog = false)
         assertEquals(InputRouterMode.GAME_INPUT, router.currentMode)
+        assertEquals(GuestUiTarget.OFF, policy.guestUiTarget)
+    }
+
+    @Test
+    fun navigationTargetSurvivesAnAndroidOverlayAndReturnsToGuestNavigation() {
+        val router = PreGameInputRouterImpl()
+        val sink = MockSink()
+        val policy = XrLivePolicy(router, sink)
+
+        policy.toggleGuestNavigation()
+        policy.updateMode(hasAndroidDialog = false)
+        assertEquals(InputRouterMode.GUEST_NAVIGATION, router.currentMode)
+
+        policy.updateMode(hasAndroidDialog = true)
+        assertEquals(InputRouterMode.ANDROID_OVERLAY, router.currentMode)
+
+        policy.updateMode(hasAndroidDialog = false)
+        assertEquals(InputRouterMode.GUEST_NAVIGATION, router.currentMode)
+        assertEquals(GuestUiTarget.NAVIGATION, policy.guestUiTarget)
+    }
+
+    @Test
+    fun navigationToggleReturnsToPointerRatherThanForwardingTheGestureToTheGame() {
+        val router = PreGameInputRouterImpl()
+        val sink = MockSink()
+        val policy = XrLivePolicy(router, sink)
+
+        policy.toggleGuestNavigation()
+        policy.updateMode(hasAndroidDialog = false)
+        policy.toggleGuestNavigation()
+        policy.updateMode(hasAndroidDialog = false)
+
+        assertEquals(InputRouterMode.GUEST_POINTER, router.currentMode)
+        assertEquals(GuestUiTarget.POINTER, policy.guestUiTarget)
     }
 
     @Test

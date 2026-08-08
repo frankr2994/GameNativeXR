@@ -46,22 +46,6 @@ object ContainerUtils {
         listOf(WRAPPER_TURNIP_CAPABLE, WRAPPER_ADRENO_8ELITE_GEN5, WRAPPER_ADRENO_8ELITE, WRAPPER_ADRENO_A12)
 
     fun setContainerDefaults(context: Context) {
-        val descriptor = app.gamenative.hardware.quest.QuestDeviceDetector.collectDescriptor(context)
-        val report = app.gamenative.hardware.quest.QuestProfileResolver.resolve(descriptor)
-        
-        if (report.isSupported && report.profile != null) {
-            val p = report.profile
-            DefaultVersion.VARIANT = p.containerVariant
-            DefaultVersion.WINE_VERSION = p.wineVersion
-            DefaultVersion.DEFAULT_GRAPHICS_DRIVER = p.graphicsDriver
-            DefaultVersion.DXVK = p.dxwrapperConfig
-            DefaultVersion.VKD3D = "2.14.1" // Default static version
-            DefaultVersion.WRAPPER = p.graphicsDriverConfig
-            DefaultVersion.STEAM_TYPE = Container.STEAM_TYPE_NORMAL
-            DefaultVersion.ASYNC_CACHE = "1"
-            return
-        }
-
         // Override default driver and DXVK version based on Turnip capability
         if (GPUInformation.isTurnipCapable(context)) {
             DefaultVersion.VARIANT = Container.BIONIC

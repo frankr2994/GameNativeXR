@@ -99,6 +99,7 @@ public class XrActivity extends MainActivity {
     // XR input/output
     private XrAPI xrAPI = null;
     private XrController xrController = null;
+    public XrController getController() { return xrController; }
     private XrKeyboard xrKeyboard = null;
 
     static {

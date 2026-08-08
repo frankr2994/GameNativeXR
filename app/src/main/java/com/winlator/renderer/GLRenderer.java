@@ -233,7 +233,7 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
 
         renderWindows(windowMaterial, false);
 
-        if (cursorVisible && !rootWindowDownsized) renderCursor();
+        if (shouldRenderCursor()) renderCursor();
 
         if ((!magnifierEnabled && !fullscreen) || renderingToOffscreenTarget) GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
     }
@@ -358,12 +358,22 @@ public class GLRenderer implements GLSurfaceView.Renderer, WindowManager.OnWindo
             short y = xServer.pointer.getClampedY();
 
             if (cursor != null) {
-                if (cursor.isVisible()) renderDrawable(cursor.cursorImage, x - cursor.hotSpotX, y - cursor.hotSpotY, cursorMaterial);
+                if (cursor.isVisible() || shouldForceCursorVisible()) renderDrawable(cursor.cursorImage, x - cursor.hotSpotX, y - cursor.hotSpotY, cursorMaterial);
             }
             else renderDrawable(rootCursorDrawable, x, y, cursorMaterial);
         }
 
         quadVertices.disable();
+    }
+
+    /** Subclasses may keep the cursor visible for an explicit, temporary interaction mode. */
+    protected boolean shouldRenderCursor() {
+        return cursorVisible && !rootWindowDownsized;
+    }
+
+    /** Subclasses may override only the guest-cursor visibility policy, not cursor rendering. */
+    protected boolean shouldForceCursorVisible() {
+        return false;
     }
 
     public void toggleFullscreen() {

@@ -7,7 +7,9 @@ param(
     [string]$ReportPath = "build\verification\quest-apk-report.txt",
     [switch]$Install,
     [switch]$Launch,
-    [switch]$RequireDevice
+    [switch]$RequireDevice,
+    [ValidateSet("Ignore", "Require", "Forbid")]
+    [string]$OperatorLayerPolicy = "Ignore"
 )
 
 $ErrorActionPreference = "Stop"
@@ -149,6 +151,47 @@ try {
     }
     $hasArm32XrLibrary = $archiveEntries.ContainsKey("lib/armeabi-v7a/libxr.so") -or
         $archiveEntries.ContainsKey("lib/armeabi-v7a/libopenxr_loader.so")
+
+    $operatorArtifacts = @(
+        [PSCustomObject]@{
+            Name = "operator native library"
+            Entry = "lib/arm64-v8a/libXrApiLayer_METAX_operator.so"
+            Source = Join-Path $repoRoot "app\src\modernXrDebug\jniLibs\arm64-v8a\libXrApiLayer_METAX_operator.so"
+        }
+        [PSCustomObject]@{
+            Name = "operator API-layer manifest"
+            Entry = "assets/openxr/1/api_layers/implicit.d/XrApiLayer_METAX_operator.json"
+            Source = Join-Path $repoRoot "app\src\modernXrDebug\assets\openxr\1\api_layers\implicit.d\XrApiLayer_METAX_operator.json"
+        }
+    )
+    $operatorLayerChecks = @(
+        switch ($OperatorLayerPolicy) {
+            "Require" {
+                foreach ($artifact in $operatorArtifacts) {
+                    $sourceExists = Test-Path -LiteralPath $artifact.Source
+                    $entry = $archiveEntries[$artifact.Entry]
+                    $entryExists = $null -ne $entry
+                    $sourceHash = if ($sourceExists) { (Get-FileHash -LiteralPath $artifact.Source -Algorithm SHA256).Hash } else { "<missing source>" }
+                    $entryHash = if ($entryExists) { Get-ZipEntryHash $entry } else { "<missing APK entry>" }
+                    [PSCustomObject]@{
+                        Name = "Debug Meta operator $($artifact.Name)"
+                        Pass = $sourceExists -and $entryExists -and $sourceHash -eq $entryHash
+                        Detail = "source=$sourceHash apk=$entryHash"
+                    }
+                }
+            }
+            "Forbid" {
+                foreach ($artifact in $operatorArtifacts) {
+                    $entryExists = $archiveEntries.ContainsKey($artifact.Entry)
+                    [PSCustomObject]@{
+                        Name = "Release excludes Meta operator $($artifact.Name)"
+                        Pass = -not $entryExists
+                        Detail = if ($entryExists) { "unexpected APK entry: $($artifact.Entry)" } else { "absent" }
+                    }
+                }
+            }
+        }
+    )
 }
 finally {
     $archive.Dispose()
@@ -163,6 +206,7 @@ $checks = @(
     [PSCustomObject]@{ Name = "Quest XR ABI contract"; Pass = -not $hasArm32XrLibrary; Detail = "Quest XR native pair is arm64-v8a-only; armeabi-v7a remains a general-app ABI" }
 )
 $checks += $xrLibraryChecks
+$checks += $operatorLayerChecks
 
 $deviceSummary = "Not checked"
 if ($Install -or $Launch -or $RequireDevice) {
@@ -204,6 +248,7 @@ $report = @(
     "Version: $versionName ($versionCode)",
     "Launchable activity: $launchableLine",
     "Quest XR ABI scope: arm64-v8a only",
+    "Meta operator policy: $OperatorLayerPolicy",
     "",
     "Checks:"
 )

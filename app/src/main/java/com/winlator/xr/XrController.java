@@ -31,7 +31,6 @@ import com.winlator.xr.api.XrAPI;
 import com.winlator.xr.api.XrInterface;
 import com.winlator.xr.ui.XrContentDialog;
 import com.winlator.xr.ui.XrDialog;
-import com.winlator.xserver.Keyboard;
 import com.winlator.xserver.Pointer;
 import com.winlator.xserver.XKeycode;
 
@@ -77,6 +76,8 @@ public class XrController {
     private final RayPointerMapper rayPointerMapper = new RayPointerMapperImpl();
     private long lastKeyboardToggleTime = 0;
     private final XrLivePolicy livePolicy;
+    private volatile boolean systemMenuVisible;
+    private XrDialog systemMenuDialog;
 
     public XrController() {
         instance = XrActivity.getInstance();
@@ -122,14 +123,16 @@ public class XrController {
         }
     }
     public boolean updateAndroidInput(boolean[] buttons, float[] axes) {
-        boolean leftToggle = getButtonClicked(buttons, XrInterface.ControllerButton.L_THUMBSTICK_PRESS) && buttons[XrInterface.ControllerButton.L_X.ordinal()];
-        boolean rightToggle = getButtonClicked(buttons, XrInterface.ControllerButton.R_THUMBSTICK_PRESS) && buttons[XrInterface.ControllerButton.R_A.ordinal()];
-        if (leftToggle || rightToggle) {
-            livePolicy.toggleGuestUI();
-        }
-
         XrContentDialog dialog = XrContentDialog.getFrontInstance();
-        livePolicy.updateMode(dialog != null);
+        boolean hasAndroidOverlay = dialog != null || systemMenuVisible;
+        if (!hasAndroidOverlay) {
+            if (isGuestPointerToggle(buttons)) {
+                livePolicy.toggleGuestPointer();
+            } else if (isGuestNavigationToggle(buttons)) {
+                livePolicy.toggleGuestNavigation();
+            }
+        }
+        livePolicy.updateMode(hasAndroidOverlay);
 
         ControllerHand preferredHand = XrActivity.mouseLeftHanded ? ControllerHand.LEFT : ControllerHand.RIGHT;
         if (inputRouter instanceof PreGameInputRouterImpl) {
@@ -144,9 +147,10 @@ public class XrController {
         InputRoutingResult result = inputRouter.processControllerInput(frame);
 
         // Ray mapping for visible reticle in pointer modes
-        if (result.getMode() == InputRouterMode.GUEST_POINTER || result.getMode() == InputRouterMode.GUEST_TEXT) {
-            float yaw = axes[XrActivity.mouseLeftHanded ? XrInterface.ControllerAxis.L_YAW.ordinal() : XrInterface.ControllerAxis.R_YAW.ordinal()];
-            float pitch = axes[XrActivity.mouseLeftHanded ? XrInterface.ControllerAxis.L_PITCH.ordinal() : XrInterface.ControllerAxis.R_PITCH.ordinal()];
+        if ((result.getMode() == InputRouterMode.GUEST_POINTER || result.getMode() == InputRouterMode.GUEST_TEXT) && instance.getXServer() != null) {
+            ControllerHand rayHand = result.getActiveHand() != null ? result.getActiveHand() : preferredHand;
+            float yaw = axes[rayHand == ControllerHand.LEFT ? XrInterface.ControllerAxis.L_YAW.ordinal() : XrInterface.ControllerAxis.R_YAW.ordinal()];
+            float pitch = axes[rayHand == ControllerHand.LEFT ? XrInterface.ControllerAxis.L_PITCH.ordinal() : XrInterface.ControllerAxis.R_PITCH.ordinal()];
             PointerVector3 origin = new PointerVector3(0f, 0f, 0f);
             ControllerPointerRay ray = ControllerPointerRay.Companion.fromYawPitch(origin, yaw, pitch);
 
@@ -185,23 +189,29 @@ public class XrController {
         XrContentDialog dialog = XrContentDialog.getFrontInstance();
         for (RoutedInputAction action : result.getActions()) {
             switch (action) {
+                case OPEN_SYSTEM_MENU:
+                    toggleSystemMenu();
+                    break;
+                case CLOSE_SYSTEM_MENU:
+                    dismissSystemMenu();
+                    break;
                 case ANDROID_CONFIRM:
-                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_ENTER));
+                    dispatchOverlayKey(dialog, KeyEvent.KEYCODE_ENTER);
                     break;
                 case ANDROID_BACK:
-                    if (dialog != null) instance.runOnUiThread(dialog::onBackPressed);
+                    dismissOverlay(dialog);
                     break;
                 case ANDROID_NAV_UP:
-                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_UP));
+                    dispatchOverlayKey(dialog, KeyEvent.KEYCODE_DPAD_UP);
                     break;
                 case ANDROID_NAV_DOWN:
-                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_DOWN));
+                    dispatchOverlayKey(dialog, KeyEvent.KEYCODE_DPAD_DOWN);
                     break;
                 case ANDROID_NAV_LEFT:
-                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_LEFT));
+                    dispatchOverlayKey(dialog, KeyEvent.KEYCODE_DPAD_LEFT);
                     break;
                 case ANDROID_NAV_RIGHT:
-                    if (dialog != null) instance.runOnUiThread(() -> dialog.onKeyAction(KeyEvent.KEYCODE_DPAD_RIGHT));
+                    dispatchOverlayKey(dialog, KeyEvent.KEYCODE_DPAD_RIGHT);
                     break;
                 case REQUEST_VISIBLE_KEYBOARD:
                     lastKeyboardToggleTime = System.currentTimeMillis();
@@ -218,6 +228,72 @@ public class XrController {
             }
         }
         livePolicy.routeActions(result);
+    }
+
+    private boolean isGuestPointerToggle(boolean[] buttons) {
+        return isChordClicked(buttons, XrInterface.ControllerButton.L_THUMBSTICK_PRESS, XrInterface.ControllerButton.L_X) ||
+               isChordClicked(buttons, XrInterface.ControllerButton.R_THUMBSTICK_PRESS, XrInterface.ControllerButton.R_A);
+    }
+
+    private boolean isGuestNavigationToggle(boolean[] buttons) {
+        return isChordClicked(buttons, XrInterface.ControllerButton.L_THUMBSTICK_PRESS, XrInterface.ControllerButton.L_Y) ||
+               isChordClicked(buttons, XrInterface.ControllerButton.R_THUMBSTICK_PRESS, XrInterface.ControllerButton.R_B);
+    }
+
+    private boolean isChordClicked(boolean[] buttons, XrInterface.ControllerButton first, XrInterface.ControllerButton second) {
+        return buttons[first.ordinal()] && buttons[second.ordinal()] &&
+               (getButtonClicked(buttons, first) || getButtonClicked(buttons, second));
+    }
+
+    private void dispatchOverlayKey(XrContentDialog dialog, int keyCode) {
+        if (dialog != null) {
+            instance.runOnUiThread(() -> dialog.onKeyAction(keyCode));
+        } else if (systemMenuVisible) {
+            instance.runOnUiThread(() -> {
+                if (systemMenuVisible && systemMenuDialog != null) {
+                    systemMenuDialog.onKeyAction(keyCode);
+                }
+            });
+        }
+    }
+
+    private void dismissOverlay(XrContentDialog dialog) {
+        if (dialog != null) {
+            instance.runOnUiThread(dialog::onBackPressed);
+        } else {
+            dismissSystemMenu();
+        }
+    }
+
+    private void toggleSystemMenu() {
+        instance.runOnUiThread(() -> {
+            if (systemMenuVisible) {
+                dismissSystemMenuOnUiThread();
+                return;
+            }
+
+            XrDialog dialog = new XrDialog(instance);
+            dialog.setOnDismissListener(ignored -> {
+                if (systemMenuDialog == dialog) {
+                    systemMenuDialog = null;
+                    systemMenuVisible = false;
+                }
+            });
+            systemMenuDialog = dialog;
+            systemMenuVisible = true;
+            dialog.show();
+        });
+    }
+
+    private void dismissSystemMenu() {
+        instance.runOnUiThread(this::dismissSystemMenuOnUiThread);
+    }
+
+    private void dismissSystemMenuOnUiThread() {
+        XrDialog dialog = systemMenuDialog;
+        systemMenuDialog = null;
+        systemMenuVisible = false;
+        if (dialog != null) dialog.dismiss();
     }
 
     public void updateHaptics(XrAPI xrAPI) {
@@ -365,9 +441,13 @@ public class XrController {
         }
     }
 
+    public boolean isPointerModeActive() {
+        return inputRouter.getCurrentMode() == InputRouterMode.GUEST_POINTER ||
+               inputRouter.getCurrentMode() == InputRouterMode.GUEST_TEXT;
+    }
+
     public void updateMouseState(boolean[] buttons, float fps) {
         // Get OpenXR input
-        Pointer mouse = instance.getXServer().pointer;
         XrInterface.ControllerButton primaryGrip = XrActivity.mouseLeftHanded ? XrInterface.ControllerButton.L_GRIP : XrInterface.ControllerButton.R_GRIP;
         XrInterface.ControllerButton primaryTrigger = XrActivity.mouseLeftHanded ? XrInterface.ControllerButton.L_TRIGGER : XrInterface.ControllerButton.R_TRIGGER;
         XrInterface.ControllerButton primaryUp = XrActivity.mouseLeftHanded ? XrInterface.ControllerButton.L_THUMBSTICK_UP : XrInterface.ControllerButton.R_THUMBSTICK_UP;
@@ -375,8 +455,6 @@ public class XrController {
 
         // Apply values
         currentButtons = buttons;
-        mouse.setX((int) smoothedMouse[0]);
-        mouse.setY((int) smoothedMouse[1]);
         mapButton(primaryTrigger, Pointer.Button.BUTTON_LEFT);
         mapButton(primaryGrip, Pointer.Button.BUTTON_RIGHT);
         mapButton(primaryUp, Pointer.Button.BUTTON_SCROLL_UP);
@@ -385,11 +463,15 @@ public class XrController {
         // Limit cursor updates to the FPS (this prevents freezing)
         long timestamp = System.currentTimeMillis();
         if (timestamp - lastMouseUpdate > 1000 / Math.max(fps, 1)) {
-            if ((lastMouseX != mouse.getX()) || (lastMouseY != mouse.getY())) {
+            int newX = (int) smoothedMouse[0];
+            int newY = (int) smoothedMouse[1];
+            if ((lastMouseX != newX) || (lastMouseY != newY)) {
                 lastMouseUpdate = timestamp;
-                lastMouseX = mouse.getX();
-                lastMouseY = mouse.getY();
-                mouse.triggerOnPointerMove(lastMouseX, lastMouseY);
+                lastMouseX = (short) newX;
+                lastMouseY = (short) newY;
+                if (instance.getXServer() != null) {
+                    instance.getXServer().injectPointerMove(lastMouseX, lastMouseY);
+                }
             }
         }
     }
@@ -410,19 +492,25 @@ public class XrController {
     }
 
     private void mapButton(XrInterface.ControllerButton xrButton, Pointer.Button button) {
-        Pointer mouse = instance.getXServer().pointer;
         if (currentButtons[xrButton.ordinal()] != lastButtons[xrButton.ordinal()]) {
-            mouse.setButton(button, currentButtons[xrButton.ordinal()]);
+            if (instance.getXServer() != null) {
+                if (currentButtons[xrButton.ordinal()]) {
+                    instance.getXServer().injectPointerButtonPress(button);
+                } else {
+                    instance.getXServer().injectPointerButtonRelease(button);
+                }
+            }
         }
     }
 
     private void mapKey(XrInterface.ControllerButton xrButton, byte xKeycode) {
-        Keyboard keyboard = instance.getXServer().keyboard;
         if (currentButtons[xrButton.ordinal()] != lastButtons[xrButton.ordinal()]) {
-            if (currentButtons[xrButton.ordinal()]) {
-                keyboard.setKeyPress(xKeycode, 0);
-            } else {
-                keyboard.setKeyRelease(xKeycode);
+            if (instance.getXServer() != null) {
+                if (currentButtons[xrButton.ordinal()]) {
+                    instance.getXServer().injectKeyPress(xKeycode);
+                } else {
+                    instance.getXServer().injectKeyRelease(xKeycode);
+                }
             }
         }
     }

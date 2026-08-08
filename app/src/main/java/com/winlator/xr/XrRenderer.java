@@ -293,4 +293,19 @@ public class XrRenderer extends GLRenderer {
     protected void renderWindows(ShaderMaterial material, boolean forceFullscreen) {
         super.renderWindows(material, xrImmersive);
     }
+
+    @Override
+    protected boolean shouldRenderCursor() {
+        return super.shouldRenderCursor() || isGuestPointerActive();
+    }
+
+    @Override
+    protected boolean shouldForceCursorVisible() {
+        return isGuestPointerActive();
+    }
+
+    private boolean isGuestPointerActive() {
+        XrActivity activity = XrActivity.getInstance();
+        return activity != null && activity.getController() != null && activity.getController().isPointerModeActive();
+    }
 }
