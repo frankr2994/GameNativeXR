@@ -3645,12 +3645,15 @@ private fun setupXEnvironment(
         if (logFile.exists()) logFile.delete()
     }
 
-    val debugCaptureSubscriber = app.gamenative.diagnostics.ProcessOutputSubscriber { record ->
-        if (captureLogs) {
+    val debugCaptureSubscriber = if (captureLogs) {
+        val sub = app.gamenative.diagnostics.ProcessOutputSubscriber { record ->
             logFile?.appendText(record.line + "\n")
         }
-    }
-    ProcessOutputBus.subscribe(debugCaptureSubscriber)
+        app.gamenative.diagnostics.ProcessOutputBus.subscribe(sub)
+        sub
+    } else null
+    var setupSuccessful = false
+    try {
 
     val rootPath = imageFs.getRootDir().getPath()
     FileUtils.clear(imageFs.getTmpDir())
@@ -3759,7 +3762,15 @@ private fun setupXEnvironment(
         if (XrActivity.shouldRebootInXR && !preInstallCommands.isNotEmpty()) {
             val instance = XrActivity.getInstance()
             XrActivity.openIntent(instance, instance.container.id, XrActivity.shouldOpenContainer, true)
-            return XEnvironment(context, imageFs)
+            val environment = XEnvironment(context, imageFs)
+            environment.addComponent(object : com.winlator.xenvironment.EnvironmentComponent() {
+                override fun start() {}
+                override fun stop() {
+                    debugCaptureSubscriber?.let { app.gamenative.diagnostics.ProcessOutputBus.unsubscribe(it) }
+                }
+            })
+            setupSuccessful = true
+            return environment
         }
 
         guestProgramLauncherComponent.setPreUnpack {
@@ -3802,6 +3813,12 @@ private fun setupXEnvironment(
     }
 
     val environment = XEnvironment(context, imageFs)
+    environment.addComponent(object : com.winlator.xenvironment.EnvironmentComponent() {
+        override fun start() {}
+        override fun stop() {
+            debugCaptureSubscriber?.let { app.gamenative.diagnostics.ProcessOutputBus.unsubscribe(it) }
+        }
+    })
     environment.addComponent(
         SysVSharedMemoryComponent(
             xServer,
@@ -4052,7 +4069,13 @@ private fun setupXEnvironment(
     xServerState.value = xServerState.value.copy(
         dxwrapperConfig = null,
     )
+    setupSuccessful = true
     return environment
+    } finally {
+        if (!setupSuccessful) {
+            debugCaptureSubscriber?.let { app.gamenative.diagnostics.ProcessOutputBus.unsubscribe(it) }
+        }
+    }
 }
 private fun getWineStartCommand(
     context: Context,

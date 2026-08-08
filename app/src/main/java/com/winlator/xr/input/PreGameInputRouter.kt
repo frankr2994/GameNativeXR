@@ -1,4 +1,4 @@
-﻿package com.winlator.xr.input
+package com.winlator.xr.input
 
 import com.winlator.xr.api.XrInterface.ControllerButton
 
@@ -39,9 +39,15 @@ enum class ControllerControl {
     MENU,
 }
 
+enum class ControllerConnectionState {
+    CONNECTED,
+    DISCONNECTED,
+    UNKNOWN
+}
+
 data class ControllerInputFrame(
-    val leftConnected: Boolean,
-    val rightConnected: Boolean,
+    val leftConnection: ControllerConnectionState,
+    val rightConnection: ControllerConnectionState,
     val leftControls: Set<ControllerControl> = emptySet(),
     val rightControls: Set<ControllerControl> = emptySet(),
 ) {
@@ -50,9 +56,9 @@ data class ControllerInputFrame(
         ControllerHand.RIGHT -> rightControls
     }
 
-    fun isConnected(hand: ControllerHand): Boolean = when (hand) {
-        ControllerHand.LEFT -> leftConnected
-        ControllerHand.RIGHT -> rightConnected
+    fun connectionState(hand: ControllerHand): ControllerConnectionState = when (hand) {
+        ControllerHand.LEFT -> leftConnection
+        ControllerHand.RIGHT -> rightConnection
     }
 
     fun allControls(): Set<ControllerControl> = leftControls + rightControls
@@ -136,11 +142,11 @@ interface PreGameInputRouter {
 object XrControllerInputAdapter {
     fun fromOpenXrButtons(
         buttons: BooleanArray,
-        leftConnected: Boolean,
-        rightConnected: Boolean,
+        leftConnection: ControllerConnectionState,
+        rightConnection: ControllerConnectionState,
     ): ControllerInputFrame = ControllerInputFrame(
-        leftConnected = leftConnected,
-        rightConnected = rightConnected,
+        leftConnection = leftConnection,
+        rightConnection = rightConnection,
         leftControls = buildSet {
             addIfPressed(buttons, ControllerButton.L_TRIGGER, ControllerControl.TRIGGER)
             addIfPressed(buttons, ControllerButton.L_GRIP, ControllerControl.GRIP)
