@@ -7,7 +7,7 @@ import com.winlator.container.ContainerData
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
@@ -66,7 +66,7 @@ class LaunchPrecedenceResolverMatrixTest {
             recommendedEnvVars = mapOf("COMPAT_ENV" to "1", "SHARED_ENV" to "compat")
         )
 
-        // Level 4 VR Mod Requirement
+        // Level 4 VR Mod Requirement (Unsupported in current environment)
         val modInput = VrModRequirementInput(
             modId = "l4d2_vr_mod",
             requiredDllOverrides = mapOf("openvr_api" to "n,b", "dxgi" to "n"),
@@ -104,34 +104,35 @@ class LaunchPrecedenceResolverMatrixTest {
         assertEquals("CompatConfig", plan.graphicsDriverConfig.value)
         assertEquals(SettingSource.COMPATIBILITY_PROFILE, plan.graphicsDriverConfig.source)
 
-        // Level 4 VR Mod Tracking Mode & DLL Overrides
-        assertEquals(app.gamenative.launch.vr.TrackingMode.MODDED_6DOF, plan.trackingMode)
-        assertEquals("l4d2_vr_mod", plan.activeModId)
-        assertEquals("n,b", plan.resolvedDllOverrides["openvr_api"])
-        assertEquals("n", plan.resolvedDllOverrides["dxgi"])
+        // Since tracking defaults to FLAT_3DOF, unsupported VR Mod tracking Mode & DLL Overrides should NOT apply
+        assertEquals(app.gamenative.launch.vr.TrackingMode.FLAT_3DOF, plan.trackingMode)
+        assertNull(plan.activeModId)
+        assertNull(plan.resolvedDllOverrides["openvr_api"])
+        assertNull(plan.resolvedDllOverrides["dxgi"])
 
-        // Environment variables merged with Mod (Level 4) overriding Compat (Level 3) for duplicate keys
+        // Environment variables should NOT merge with Mod (Level 4) because it's unsupported
         assertEquals("1", plan.resolvedEnvVars["COMPAT_ENV"])
-        assertEquals("1", plan.resolvedEnvVars["MOD_ENV"])
-        assertEquals("mod", plan.resolvedEnvVars["SHARED_ENV"])
+        assertNull(plan.resolvedEnvVars["MOD_ENV"])
+        assertEquals("compat", plan.resolvedEnvVars["SHARED_ENV"]) // Remains compat, not mod
     }
 
     @Test
     fun resolvePlan_verifiesTrackingModeFallbackChain() {
-        // Case 1: Mod present -> MODDED_6DOF
+        // Case 1: Mod present but unsupported -> FLAT_3DOF, no overrides
         val modInput = VrModRequirementInput(modId = "some_mod")
         val planMod = resolver.resolvePlan(mockRequest, mockExeIdentity, questHardware, null, modInput, null)
-        assertEquals(app.gamenative.launch.vr.TrackingMode.MODDED_6DOF, planMod.trackingMode)
+        assertEquals(app.gamenative.launch.vr.TrackingMode.FLAT_3DOF, planMod.trackingMode)
+        assertNull(planMod.activeModId)
 
-        // Case 2: OpenXR import present -> NATIVE_OPENXR_6DOF
+        // Case 2: OpenXR import present but unsupported -> FLAT_3DOF
         val openXrExe = mockExeIdentity.copy(hasOpenXRImport = true)
         val planOpenXR = resolver.resolvePlan(mockRequest, openXrExe, questHardware, null, null, null)
-        assertEquals(app.gamenative.launch.vr.TrackingMode.NATIVE_OPENXR_6DOF, planOpenXR.trackingMode)
+        assertEquals(app.gamenative.launch.vr.TrackingMode.FLAT_3DOF, planOpenXR.trackingMode)
 
-        // Case 3: OpenVR import present -> NATIVE_OPENXR_6DOF
+        // Case 3: OpenVR import present but unsupported -> FLAT_3DOF
         val openVrExe = mockExeIdentity.copy(hasOpenVRImport = true)
         val planOpenVR = resolver.resolvePlan(mockRequest, openVrExe, questHardware, null, null, null)
-        assertEquals(app.gamenative.launch.vr.TrackingMode.NATIVE_OPENXR_6DOF, planOpenVR.trackingMode)
+        assertEquals(app.gamenative.launch.vr.TrackingMode.FLAT_3DOF, planOpenVR.trackingMode)
 
         // Case 4: No VR imports, no mod -> FLAT_3DOF
         val planFlat = resolver.resolvePlan(mockRequest, mockExeIdentity, questHardware, null, null, null)

@@ -10,31 +10,22 @@ class TrackingModeResolverImpl : TrackingModeResolver {
         hasVrModManifest: Boolean,
         isNativeVrSupported: Boolean
     ): TrackingModeDecision {
-        // "rejects ambiguous combinations"
-        if (hasVrModManifest && isNativeVrSupported) {
-            // A title cannot simultaneously use an external mod manifest AND native VR injection reliably
-            // without user disambiguation.
-            throw IllegalStateException("Ambiguous tracking request: both VR Mod and Native VR are supported/active.")
-        }
+        // We currently do not have a guest OpenXR/OpenVR runtime bridge implemented.
+        // Therefore, even if the executable imports OpenXR or requests a VR mod,
+        // we cannot actually provide 6DOF tracking yet.
+        // We must safely default to FLAT_3DOF and defer the decision rather than
+        // returning an unsupported 6DOF mode or crashing with IllegalStateException.
 
-        if (hasVrModManifest) {
-            return TrackingModeDecision(
-                mode = TrackingMode.MODDED_6DOF,
-                rationale = "External VR mod manifest is active for this executable."
-            )
-        }
+        val rationale = buildString {
+            append("No guest OpenXR/OpenVR runtime bridge is available in this environment. ")
+            if (hasVrModManifest) append("VR mod manifest was requested but cannot be fulfilled. ")
+            if (isNativeVrSupported) append("Executable imports OpenXR/OpenVR but native injection is unsupported. ")
+            append("Defaulting to flat virtual screen.")
+        }.trim()
 
-        if (isNativeVrSupported) {
-            return TrackingModeDecision(
-                mode = TrackingMode.NATIVE_OPENXR_6DOF,
-                rationale = "Executable supports native VR rendering and valid runtime adapter is available."
-            )
-        }
-
-        // Fallback for every title without a validated native VR adapter or compatible active VR mod
         return TrackingModeDecision(
             mode = TrackingMode.FLAT_3DOF,
-            rationale = "No VR mod or native VR support detected. Defaulting to flat virtual screen.",
+            rationale = rationale,
             isFallback = true
         )
     }

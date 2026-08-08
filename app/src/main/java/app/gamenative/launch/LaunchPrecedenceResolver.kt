@@ -167,10 +167,22 @@ class LaunchPrecedenceResolverImpl : LaunchPrecedenceResolver {
             compatibilityInput?.recommendedDxwrapperConfig, isExact, true, null, userContainer?.dxwrapperConfig
         )
 
+        // Resolve tracking mode
+        val trackingResolver = app.gamenative.launch.vr.TrackingModeResolverImpl()
+        val trackingDecision = trackingResolver.resolveTrackingMode(
+            request = request,
+            executableIdentity = exeIdentity,
+            hasVrModManifest = modInput != null,
+            isNativeVrSupported = exeIdentity.hasOpenXRImport || exeIdentity.hasOpenVRImport
+        )
+        val resolvedTracking = trackingDecision.mode
+        val isModSupported = resolvedTracking == app.gamenative.launch.vr.TrackingMode.MODDED_6DOF
+        val effectiveModInput = if (isModSupported) modInput else null
+
         // Merge Environment Variables (Level 1..5 order: Level 3 Compat -> Level 4 VR Mod -> Level 5 User Container)
         val mergedEnv = mutableMapOf<String, String>()
         compatibilityInput?.recommendedEnvVars?.let { mergedEnv.putAll(it) }
-        modInput?.requiredEnvVars?.let { mergedEnv.putAll(it) }
+        effectiveModInput?.requiredEnvVars?.let { mergedEnv.putAll(it) }
         userContainer?.envVars?.let { envStr ->
             if (envStr.isNotBlank()) {
                 val userEnv = com.winlator.core.envvars.EnvVars(envStr)
@@ -182,17 +194,7 @@ class LaunchPrecedenceResolverImpl : LaunchPrecedenceResolver {
 
         // Merge DLL Overrides
         val mergedDlls = mutableMapOf<String, String>()
-        modInput?.requiredDllOverrides?.let { mergedDlls.putAll(it) }
-
-        // Resolve tracking mode
-        val trackingResolver = app.gamenative.launch.vr.TrackingModeResolverImpl()
-        val trackingDecision = trackingResolver.resolveTrackingMode(
-            request = request,
-            executableIdentity = exeIdentity,
-            hasVrModManifest = modInput != null,
-            isNativeVrSupported = exeIdentity.hasOpenXRImport || exeIdentity.hasOpenVRImport
-        )
-        val resolvedTracking = trackingDecision.mode
+        effectiveModInput?.requiredDllOverrides?.let { mergedDlls.putAll(it) }
 
         return LaunchPlan(
             launchId = request.launchId,
@@ -212,7 +214,7 @@ class LaunchPrecedenceResolverImpl : LaunchPrecedenceResolver {
             resolvedEnvVars = mergedEnv,
             resolvedDllOverrides = mergedDlls,
             trackingMode = resolvedTracking,
-            activeModId = modInput?.modId,
+            activeModId = effectiveModInput?.modId,
             resolvedCommandArgs = request.customExecArgs ?: ""
         )
     }
