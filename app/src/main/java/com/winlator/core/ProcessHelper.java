@@ -418,17 +418,10 @@ public abstract class ProcessHelper {
 
 
     private static void createDebugThread(final InputStream inputStream, final String streamType, final int pid) {
-        Executors.newSingleThreadExecutor().execute(() -> {
+        Thread debugThread = new Thread(() -> {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (streamType != null && pid != -1) {
-                        Log.d("ProcessOutput", "[PID:" + pid + "][" + streamType + "] " + line);
-                    } else {
-                        Log.d("ProcessOutput", line);
-                    }
-
-                    if (PRINT_DEBUG) System.out.println(line);
                     app.gamenative.diagnostics.ProcessOutputBus.publish(pid, "guest_process", streamType != null ? streamType : "UNKNOWN", line);
                 }
             }
@@ -438,23 +431,24 @@ public abstract class ProcessHelper {
             catch (IOException e) {
                 Log.e("ProcessHelper", "Error on debug thread: " + e);
             }
-        });
+        }, "debug-drainer-" + pid + "-" + streamType);
+        debugThread.setDaemon(true);
+        debugThread.start();
     }
 
 
     private static void createWaitForThread(java.lang.Process process, final Callback<Integer> terminationCallback) {
-        Executors.newSingleThreadExecutor().execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    int status = process.waitFor();
-                    terminationCallback.call(status);
-                }
-                catch (InterruptedException e) {
-                    Log.e("ProcessHelper", "Error waiting for process termination", e);
-                }
+        Thread waitThread = new Thread(() -> {
+            try {
+                int status = process.waitFor();
+                terminationCallback.call(status);
             }
-        });
+            catch (InterruptedException e) {
+                Log.e("ProcessHelper", "Error waiting for process termination", e);
+            }
+        }, "process-waiter");
+        waitThread.setDaemon(true);
+        waitThread.start();
     }
 
 

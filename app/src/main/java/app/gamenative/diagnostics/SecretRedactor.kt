@@ -1,4 +1,4 @@
-﻿package app.gamenative.diagnostics
+package app.gamenative.diagnostics
 
 /**
  * Applies the same conservative secret filtering before a diagnostic record reaches any sink.
@@ -9,7 +9,7 @@ object SecretRedactor {
     const val REDACTED = "[REDACTED]"
 
     private val assignmentPattern = Regex(
-        "(?i)(\\b(?:password|passwd|pwd|access_token|refresh_token|token|authorization|cookie|totp|otp|" +
+        "(?i)((?:\\b|[_.-])(?:password|passwd|pwd|access_token|refresh_token|token|authorization|cookie|totp|otp|" +
             "mfa[_-]?code|auth[_-]?code|secret|credential)\\b\\s*[:=]\\s*)(\"[^\"]*\"|'[^']*'|[^\\s,;&]+)"
     )
     private val bearerPattern = Regex("(?i)(\\b(?:bearer|basic)\\s+)([^\\s,;&]+)")

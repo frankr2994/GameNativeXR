@@ -64,8 +64,31 @@ object ProcessOutputBus {
 
     @JvmStatic
     fun publish(pid: Int, subsystem: String, stream: String, rawLine: String) {
+        val count = capturedLineCount.incrementAndGet()
         val captureLimit = if (verboseCaptureEnabled) DIAGNOSTIC_CAPTURE_LIMIT else NORMAL_CAPTURE_LIMIT
-        if (capturedLineCount.incrementAndGet() > captureLimit) return
+
+        if (count > captureLimit) {
+            if (count == captureLimit + 1) {
+                val record = ProcessOutputRecord(
+                    launchId = DiagnosticSession.currentLaunchId,
+                    subsystem = "process_output",
+                    stream = stream,
+                    line = "Process output capture capped at $captureLimit lines.",
+                )
+                DiagnosticSession.record(
+                    severity = DiagnosticSeverity.WARN,
+                    subsystem = "process_output",
+                    eventName = "capture_capped",
+                    message = record.line,
+                    fields = mapOf("limit" to captureLimit),
+                    launchId = record.launchId,
+                )
+                subscribers.forEach { subscriber ->
+                    runCatching { subscriber.onOutput(record) }
+                }
+            }
+            return
+        }
 
         val record = ProcessOutputRecord(
             launchId = DiagnosticSession.currentLaunchId,
