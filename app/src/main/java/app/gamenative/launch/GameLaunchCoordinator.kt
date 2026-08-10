@@ -23,7 +23,8 @@ sealed class TerminalLaunchResult {
     data class Success(
         val launchId: String,
         val plan: LaunchPlan,
-        val processPid: Int,
+        val handle: RunningLaunchHandle,
+        val termination: LaunchTermination,
         val totalDurationMs: Long
     ) : TerminalLaunchResult()
 
@@ -39,11 +40,12 @@ interface GameLaunchCoordinator {
     val currentState: StateFlow<LaunchState>
     val currentLaunchId: StateFlow<String?>
     val currentPlan: StateFlow<LaunchPlan?>
+    val currentHandle: StateFlow<RunningLaunchHandle?>
 
     fun addListener(listener: LaunchEventListener)
     fun removeListener(listener: LaunchEventListener)
 
-    /** Initiates the 19-state launch execution sequence. */
+    /** Executes one launch through backend termination and cleanup. */
     suspend fun executeLaunch(request: LaunchRequest): TerminalLaunchResult
 
     /** Requests cancellation of the current active launch session. */

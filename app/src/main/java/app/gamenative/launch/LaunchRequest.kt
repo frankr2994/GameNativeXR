@@ -1,6 +1,11 @@
 package app.gamenative.launch
 
 import app.gamenative.data.GameSource
+import app.gamenative.launch.install.GameInstallResolutionRequest
+import app.gamenative.launch.install.GameInstallCandidate
+import app.gamenative.launch.install.InstallCandidateSource
+import app.gamenative.launch.install.SelectedLaunchOption
+import com.winlator.container.ContainerData
 import java.io.File
 
 /** Requested tracking / presentation mode for a launch session. */
@@ -19,8 +24,18 @@ data class LaunchRequest(
     val sessionId: String,
     val appId: String,
     val gameSource: GameSource,
-    val exeRelativePath: String,
-    val containerPath: String,
+    @Deprecated("Use installResolution; container roots are not game install roots")
+    val exeRelativePath: String = "",
+    @Deprecated("Use typed install candidates; this legacy field is retained for migration tests")
+    val containerPath: String = "",
+    val installResolution: GameInstallResolutionRequest? = null,
+    val userContainerConfig: ContainerData? = null,
+    /**
+     * Sparse per-game settings the user actually changed. Null preserves the legacy behavior of
+     * treating [userContainerConfig] as a full override; an empty set means persisted defaults
+     * must not shadow a resolved hardware profile.
+     */
+    val explicitContainerOverrideFields: Set<String>? = null,
     val requestedMode: RequestedLaunchMode = RequestedLaunchMode.AUTOMATIC,
     val isOffline: Boolean = false,
     val isDiagnosticLaunch: Boolean = false,
@@ -31,15 +46,38 @@ data class LaunchRequest(
         require(launchId.isNotBlank()) { "launchId must not be blank" }
         require(sessionId.isNotBlank()) { "sessionId must not be blank" }
         require(appId.isNotBlank()) { "appId must not be blank" }
-        require(exeRelativePath.isNotBlank()) { "exeRelativePath must not be blank" }
-        require(!File(exeRelativePath).isAbsolute && !exeRelativePath.startsWith("/") && !exeRelativePath.startsWith("\\")) {
-            "exeRelativePath must not be an absolute path: $exeRelativePath"
+        val selectedExecutable = installResolution?.selectedLaunchOption?.executableRelativePath ?: exeRelativePath
+        require(selectedExecutable.isNotBlank()) { "installResolution executable path must not be blank" }
+        require(!File(selectedExecutable).isAbsolute && !selectedExecutable.startsWith("/") && !selectedExecutable.startsWith("\\")) {
+            "installResolution executable path must not be an absolute path: $selectedExecutable"
         }
-        require(!exeRelativePath.contains("..")) { "exeRelativePath must not contain relative path escape ('..'): $exeRelativePath" }
+        require(!selectedExecutable.contains("..")) { "installResolution executable path must not contain relative path escape ('..'): $selectedExecutable" }
+        installResolution?.let {
+            require(it.appId == appId) { "installResolution appId must match request appId" }
+            require(it.gameSource == gameSource) { "installResolution gameSource must match request gameSource" }
+        }
     }
 
     /** Helper to format a redacted diagnostic summary of this request. */
     fun toDiagnosticSummary(): String {
-        return "LaunchRequest(launchId='$launchId', appId='$appId', source=$gameSource, mode=$requestedMode, diag=$isDiagnosticLaunch)"
+        return "LaunchRequest(launchId='$launchId', appId='$appId', source=$gameSource, mode=$requestedMode, explicitOverrideCount=${explicitContainerOverrideFields?.size ?: -1}, diag=$isDiagnosticLaunch)"
+    }
+
+    fun requireInstallResolution(): GameInstallResolutionRequest {
+        installResolution?.let { return it }
+        require(containerPath.isNotBlank()) { "A typed installResolution is required" }
+        return GameInstallResolutionRequest(
+            appId = appId,
+            gameSource = gameSource,
+            selectedLaunchOption = SelectedLaunchOption("legacy", exeRelativePath),
+            candidates = listOf(
+                GameInstallCandidate(
+                    root = File(containerPath),
+                    source = InstallCandidateSource.SAVED_CONTAINER_PATH,
+                    guestDriveLetter = 'D',
+                    description = "Legacy request migration candidate"
+                )
+            )
+        )
     }
 }

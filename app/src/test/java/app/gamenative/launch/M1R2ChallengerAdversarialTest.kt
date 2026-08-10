@@ -240,8 +240,8 @@ class M1R2ChallengerAdversarialTest {
 
         // VAR1 comes from compat (Level 3)
         assertEquals("compat1", plan.resolvedEnvVars["VAR1"])
-        // VAR2 comes from mod (Level 4 over Level 3)
-        assertEquals("mod2", plan.resolvedEnvVars["VAR2"])
+        // The mod is unsupported in flat fallback, so Level 3 remains effective.
+        assertEquals("compat2", plan.resolvedEnvVars["VAR2"])
         // VAR3 comes from user container (Level 5 over Level 4 & Level 3)
         assertEquals("user3", plan.resolvedEnvVars["VAR3"])
         // VAR4 comes from user container (Level 5)

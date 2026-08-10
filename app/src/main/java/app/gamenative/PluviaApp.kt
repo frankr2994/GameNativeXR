@@ -1,5 +1,6 @@
 package app.gamenative
 
+import android.os.Build
 import android.os.StrictMode
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +35,7 @@ import com.winlator.widget.TouchpadView
 import com.winlator.widget.XServerRendererView
 import com.winlator.xenvironment.XEnvironment
 import timber.log.Timber
+import app.gamenative.launch.backend.XServerLaunchSessionRegistry
 import dagger.hilt.android.HiltAndroidApp
 
 import kotlinx.coroutines.CoroutineScope
@@ -53,6 +55,15 @@ class PluviaApp : SplitCompatApplication() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Robolectric needs the real Hilt application type, but migrations, native preload,
+        // analytics, and background downloads are process bootstrap work—not unit-test setup.
+        if (Build.FINGERPRINT == "robolectric") {
+            PrefManager.init(this)
+            app.gamenative.service.gog.GOGConstants.init(this)
+            DownloadService.populateDownloadService(this)
+            return
+        }
 
         // Allows to find resource streams not closed within GameNative and JavaSteam
         if (BuildConfig.DEBUG) {
@@ -242,7 +253,11 @@ class PluviaApp : SplitCompatApplication() {
             runCatching { touchpadView?.releasePointerCapture() }
                 .onFailure { Timber.e(it, "shutdownEnvironment: releasePointerCapture") }
             runCatching { env?.stopEnvironmentComponents() }
-                .onFailure { Timber.e(it, "shutdownEnvironment: stopEnvironmentComponents") }
+                .onSuccess { XServerLaunchSessionRegistry.cleanupCompleted() }
+                .onFailure {
+                    Timber.e(it, "shutdownEnvironment: stopEnvironmentComponents")
+                    XServerLaunchSessionRegistry.cleanupFailed(it)
+                }
 
             xEnvironment = null
             inputControlsView = null

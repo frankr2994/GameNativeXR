@@ -104,7 +104,35 @@ class LaunchPrecedenceResolverTest {
     }
 
     @Test
-    fun resolvePlan_mergesLevel5UserEnvironmentVariables_overLevel3AndLevel4() {
+    fun resolvePlan_livePersistedDefaultsDoNotShadowHardwareProfile() {
+        val persistedContainer = ContainerData(
+            graphicsDriver = "Turnip",
+            graphicsDriverConfig = "vulkanVersion=1.3",
+            dxwrapper = "dxvk",
+        )
+        val liveRequest = mockRequest.copy(explicitContainerOverrideFields = emptySet())
+
+        val plan = resolver.resolvePlan(liveRequest, mockExeIdentity, quest2Hardware, null, null, persistedContainer)
+
+        assertEquals("Wrapper", plan.graphicsDriver.value)
+        assertEquals(SettingSource.HARDWARE_PROFILE, plan.graphicsDriver.source)
+    }
+
+    @Test
+    fun resolvePlan_liveExplicitFieldStillOverridesHardwareProfile() {
+        val persistedContainer = ContainerData(graphicsDriver = "UserCustomDriver")
+        val liveRequest = mockRequest.copy(
+            explicitContainerOverrideFields = setOf(ContainerExecutionOverrideDetector.GRAPHICS_DRIVER),
+        )
+
+        val plan = resolver.resolvePlan(liveRequest, mockExeIdentity, quest2Hardware, null, null, persistedContainer)
+
+        assertEquals("UserCustomDriver", plan.graphicsDriver.value)
+        assertEquals(SettingSource.USER_OVERRIDE, plan.graphicsDriver.source)
+    }
+
+    @Test
+    fun resolvePlan_ignoresUnsupportedModEnvironment_andAppliesUserOverCompatibility() {
         val compatInput = CompatibilityResolutionInput(
             isExactMatch = true,
             recommendedEnvVars = mapOf("SHARED_VAR" to "compat_value", "COMPAT_VAR" to "1")
@@ -127,7 +155,7 @@ class LaunchPrecedenceResolverTest {
 
         assertEquals("user_value", plan.resolvedEnvVars["SHARED_VAR"])
         assertEquals("1", plan.resolvedEnvVars["COMPAT_VAR"])
-        assertEquals("1", plan.resolvedEnvVars["MOD_VAR"])
+        assertEquals(null, plan.resolvedEnvVars["MOD_VAR"])
         assertEquals("1", plan.resolvedEnvVars["USER_VAR"])
     }
 }

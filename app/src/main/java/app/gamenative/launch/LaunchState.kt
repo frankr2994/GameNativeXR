@@ -84,9 +84,9 @@ enum class LaunchState(
             STEAM_PREPARING -> targetState == CONTAINER_PREPARING
             CONTAINER_PREPARING -> targetState == ENVIRONMENT_STARTING
             ENVIRONMENT_STARTING -> targetState == GUEST_PROCESS_STARTING
-            GUEST_PROCESS_STARTING -> targetState == WINDOW_OR_XR_HANDSHAKE_WAITING || targetState == RUNNING
+            GUEST_PROCESS_STARTING -> targetState == WINDOW_OR_XR_HANDSHAKE_WAITING
             WINDOW_OR_XR_HANDSHAKE_WAITING -> targetState == RUNNING
-            RUNNING -> targetState == STOPPING || targetState == CLEANUP || targetState == COMPLETED
+            RUNNING -> targetState == STOPPING || targetState == CLEANUP
             STOPPING -> targetState == CLEANUP
             CLEANUP -> targetState == COMPLETED || targetState == FAILED
             COMPLETED, FAILED -> false

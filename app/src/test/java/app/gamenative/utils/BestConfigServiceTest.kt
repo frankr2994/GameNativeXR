@@ -174,7 +174,7 @@ class BestConfigServiceTest {
 
         // For fallback_match, only executablePath and useLegacyDRM should be in the map
         assertTrue("executablePath should be in map", result.containsKey("executablePath"))
-        assertTrue("useLegacyDRM should be in map", result.containsKey("useLegacyDRM"))
+        // useLegacyDRM removed
 
         // Excluded fields should NOT be in the map
         assertFalse("graphicsDriver should NOT be in map for fallback_match", result.containsKey("graphicsDriver"))
@@ -195,7 +195,7 @@ class BestConfigServiceTest {
         assertTrue("Result should not be empty", result!!.isNotEmpty())
 
         // For fallback_match with applyKnownConfig=false, only executablePath and useLegacyDRM should be in the map
-        assertTrue("executablePath should be in map", result.containsKey("executablePath") || result.containsKey("useLegacyDRM"))
+        assertTrue("executablePath should be in map", result.containsKey("executablePath"))
 
         // Excluded fields should NOT be in the map for fallback_match
         assertFalse("graphicsDriver should NOT be in map for fallback_match", result.containsKey("graphicsDriver"))
@@ -216,7 +216,7 @@ class BestConfigServiceTest {
         assertTrue("Result should not be empty", result!!.isNotEmpty())
 
         // For fallback_match with applyKnownConfig=false, only executablePath and useLegacyDRM should be in the map
-        assertTrue("executablePath should be in map", result.containsKey("executablePath") || result.containsKey("useLegacyDRM"))
+        assertTrue("executablePath should be in map", result.containsKey("executablePath"))
 
         // Excluded fields should NOT be in the map for fallback_match
         assertFalse("graphicsDriver should NOT be in map for fallback_match", result.containsKey("graphicsDriver"))
@@ -225,7 +225,7 @@ class BestConfigServiceTest {
     }
 
     @Test
-    fun testApplyKnownConfigFalse_onlyReturnsExecutablePathAndUseLegacyDRM() {
+    fun testApplyKnownConfigFalse_onlyReturnsExecutablePath() {
         // Test that when applyKnownConfig=false, only executablePath and useLegacyDRM are returned
         // even for exact_gpu_match which would normally return all fields
         val bestConfig = parseBestConfig(cs2MaliExactMatchResponse)
@@ -241,8 +241,8 @@ class BestConfigServiceTest {
 
         // Should only contain executablePath and/or useLegacyDRM
         val keys = result.keys
-        assertTrue("Result should only contain executablePath and/or useLegacyDRM", 
-            keys.all { it == "executablePath" || it == "useLegacyDRM" })
+        assertTrue("Result should only contain executablePath",
+            keys.all { it == "executablePath" })
 
         // Verify executablePath is present if it exists in config
         if (bestConfig.toString().contains("executablePath")) {
@@ -252,8 +252,8 @@ class BestConfigServiceTest {
 
         // Verify useLegacyDRM is present if it exists in config
         if (bestConfig.toString().contains("useLegacyDRM")) {
-            assertTrue("useLegacyDRM should be in map", result.containsKey("useLegacyDRM"))
-            assertEquals(false, result["useLegacyDRM"])
+            // useLegacyDRM removed
+            // useLegacyDRM removed
         }
 
         // Verify other fields are NOT present
@@ -783,7 +783,7 @@ class BestConfigServiceTest {
         assertEquals("box64Version should be parsed", "0.3.6", result["box64Version"])
         assertEquals("box64Preset should be parsed", "PERFORMANCE", result["box64Preset"])
         assertEquals(1, (result["startupSelection"] as? Byte)?.toInt() ?: (result["startupSelection"] as? Int))
-        assertEquals(false, result["useLegacyDRM"])
+        // useLegacyDRM removed
     }
 
     @Test

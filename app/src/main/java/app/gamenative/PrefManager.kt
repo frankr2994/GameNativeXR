@@ -521,14 +521,6 @@ object PrefManager {
         set(value) {
             setPref(LAUNCH_BIONIC_STEAM, value)
         }
-
-    private val FORCE_DLC = booleanPreferencesKey("force_dlc")
-    var forceDlc: Boolean
-        get() = getPref(FORCE_DLC, false)
-        set(value) {
-            setPref(FORCE_DLC, value)
-        }
-
     private val LOCAL_SAVES_ONLY = booleanPreferencesKey("local_saves_only")
     var localSavesOnly: Boolean
         get() = getPref(LOCAL_SAVES_ONLY, false)
@@ -549,22 +541,6 @@ object PrefManager {
         set(value) {
             setPref(EPIC_OFFLINE_MODE, value)
         }
-
-
-    private val USE_LEGACY_DRM = booleanPreferencesKey("use_legacy_drm")
-    var useLegacyDRM: Boolean
-        get() = getPref(USE_LEGACY_DRM, false)
-        set(value) {
-            setPref(USE_LEGACY_DRM, value)
-        }
-
-    private val UNPACK_FILES = booleanPreferencesKey("unpack_files")
-    var unpackFiles: Boolean
-        get() = getPref(UNPACK_FILES, false)
-        set(value) {
-            setPref(UNPACK_FILES, value)
-        }
-
     private val SUSPEND_POLICY = stringPreferencesKey("suspend_policy")
     var suspendPolicy: String
         get() = Container.normalizeSuspendPolicy(getPref(SUSPEND_POLICY, Container.SUSPEND_POLICY_MANUAL))

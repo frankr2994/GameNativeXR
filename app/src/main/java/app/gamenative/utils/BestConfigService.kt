@@ -760,9 +760,7 @@ object BestConfigService {
                 if (originalJson.has("executablePath") && !originalJson.isNull("executablePath")) {
                     resultMap["executablePath"] = originalJson.optString("executablePath", "")
                 }
-                if (originalJson.has("useLegacyDRM") && !originalJson.isNull("useLegacyDRM")) {
-                    resultMap["useLegacyDRM"] = originalJson.optBoolean("useLegacyDRM", PrefManager.useLegacyDRM)
-                }
+
                 return resultMap
             }
 
@@ -898,9 +896,6 @@ object BestConfigService {
                 }
                 if (filteredJson.has("fexcorePreset") && !filteredJson.isNull("fexcorePreset")) {
                     resultMap["fexcorePreset"] = filteredJson.optString("fexcorePreset", "")
-                }
-                if (filteredJson.has("useLegacyDRM") && !filteredJson.isNull("useLegacyDRM")) {
-                    resultMap["useLegacyDRM"] = filteredJson.optBoolean("useLegacyDRM", PrefManager.useLegacyDRM)
                 }
                 if (filteredJson.has("steamOfflineMode") && !filteredJson.isNull("steamOfflineMode")) {
                     resultMap["steamOfflineMode"] = filteredJson.optBoolean("steamOfflineMode", PrefManager.steamOfflineMode)

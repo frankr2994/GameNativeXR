@@ -1524,44 +1524,55 @@ fun PluviaMain(
 
                 /** Game Screen **/
                 composable(route = PluviaScreen.XServer.route) {
+                    // The launch event can arrive in the same frame as setLaunchedAppId(). Read
+                    // the StateFlow again here instead of using the outer composition snapshot so
+                    // an activity-recreation/XR handoff cannot instantiate XServerScreen with an
+                    // empty container ID.
+                    val launchState by viewModel.state.collectAsStateWithLifecycle()
                     val xServerIsOffline by viewModel.isOffline.collectAsStateWithLifecycle()
-                    XServerScreen(
-                        appId = state.launchedAppId,
-                        bootToContainer = state.bootToContainer,
-                        testGraphics = state.testGraphics,
-                        diagnostics = state.diagnostics,
-                        isOffline = xServerIsOffline,
-                        registerBackAction = { cb ->
-                            Timber.d("registerBackAction called: $cb")
-                            gameBackAction = cb
-                        },
-                        navigateBack = {
-                            CoroutineScope(Dispatchers.Main).launch {
-                                val currentRoute = navController.currentBackStackEntry
-                                    ?.destination
-                                    ?.route
+                    if (launchState.launchedAppId.isBlank()) {
+                        LaunchedEffect(Unit) {
+                            Timber.w("Deferring XServer composition until the launch app ID is available")
+                        }
+                    } else {
+                        XServerScreen(
+                            appId = launchState.launchedAppId,
+                            bootToContainer = launchState.bootToContainer,
+                            testGraphics = launchState.testGraphics,
+                            diagnostics = launchState.diagnostics,
+                            isOffline = xServerIsOffline,
+                            registerBackAction = { cb ->
+                                Timber.d("registerBackAction called: $cb")
+                                gameBackAction = cb
+                            },
+                            navigateBack = {
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    val currentRoute = navController.currentBackStackEntry
+                                        ?.destination
+                                        ?.route
 
-                                if (currentRoute == PluviaScreen.XServer.route) {
-                                    if (MainActivity.wasLaunchedViaExternalIntent) {
-                                        Timber.d("[IntentLaunch]: Finishing activity to return to external launcher")
-                                        MainActivity.wasLaunchedViaExternalIntent = false
-                                        (context as? android.app.Activity)?.finish()
-                                    } else {
-                                        navController.popBackStack()
+                                    if (currentRoute == PluviaScreen.XServer.route) {
+                                        if (MainActivity.wasLaunchedViaExternalIntent) {
+                                            Timber.d("[IntentLaunch]: Finishing activity to return to external launcher")
+                                            MainActivity.wasLaunchedViaExternalIntent = false
+                                            (context as? android.app.Activity)?.finish()
+                                        } else {
+                                            navController.popBackStack()
+                                        }
                                     }
                                 }
-                            }
-                        },
-                        onWindowMapped = { context, window ->
-                            viewModel.onWindowMapped(context, window, state.launchedAppId)
-                        },
-                        onExit = { onComplete ->
-                            viewModel.exitSteamApp(context, state.launchedAppId, onComplete)
-                        },
-                        onGameLaunchError = { error ->
-                            viewModel.onGameLaunchError(error)
-                        },
-                    )
+                            },
+                            onWindowMapped = { mappedContext, window ->
+                                viewModel.onWindowMapped(mappedContext, window, launchState.launchedAppId)
+                            },
+                            onExit = { onComplete ->
+                                viewModel.exitSteamApp(context, launchState.launchedAppId, onComplete)
+                            },
+                            onGameLaunchError = { error ->
+                                viewModel.onGameLaunchError(error)
+                            },
+                        )
+                    }
                 }
 
                 /** Settings **/
@@ -1780,7 +1791,7 @@ fun preLaunchApp(
                 ).await()
             }
 
-            if (!container.isUseLegacyDRM && !container.isLaunchRealSteam &&
+            if (!container.isLaunchRealSteam &&
                 !SteamService.isFileInstallable(context, "experimental-drm-20260116.tzst")
             ) {
                 setLoadingMessage("Downloading extras")
