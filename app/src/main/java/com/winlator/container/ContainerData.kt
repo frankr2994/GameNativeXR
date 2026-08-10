@@ -78,11 +78,9 @@ data class ContainerData(
     val dinputMapperType: Byte = 1,
     /** Disable external mouse input **/
     val disableMouseInput: Boolean = false,
-    /** Touchscreen mode (defaults on for XR builds) **/
-    val touchscreenMode: Boolean = app.gamenative.BuildConfig.XR_BUILD,
     /** Shooter mode (auto-replace sticks with dynamic joysticks) **/
     val shooterMode: Boolean = true,
-    /** Serialised JSON gesture configuration (used when touchscreenMode is true) **/
+    /** Serialised JSON gesture configuration **/
     val gestureConfig: String = "",
     /** Serialised JSON shooter mode configuration (used when shooterMode is true) **/
     val shooterConfig: String = "",
@@ -92,12 +90,9 @@ data class ContainerData(
     val externalDisplaySwap: Boolean = false,
     /** Preferred game language (Goldberg) **/
     val language: String = "english",
-    val forceDlc: Boolean = false,
     val localSavesOnly: Boolean = false,
     val steamOfflineMode: Boolean = false,
     val epicOfflineMode: Boolean = false,
-    val useLegacyDRM: Boolean = false,
-    val unpackFiles: Boolean = false,
     val suspendPolicy: String = Container.SUSPEND_POLICY_MANUAL,
     val portraitMode: Boolean = false,
     val sharpnessEffect: String = "None",
@@ -175,7 +170,6 @@ data class ContainerData(
                     "enableDInput" to state.enableDInput,
                     "dinputMapperType" to state.dinputMapperType,
                     "disableMouseInput" to state.disableMouseInput,
-                    "touchscreenMode" to state.touchscreenMode,
                     "shooterMode" to state.shooterMode,
                     "gestureConfig" to state.gestureConfig,
                     "shooterConfig" to state.shooterConfig,
@@ -183,12 +177,9 @@ data class ContainerData(
                     "externalDisplaySwap" to state.externalDisplaySwap,
                     "useDRI3" to state.useDRI3,
                     "language" to state.language,
-                    "forceDlc" to state.forceDlc,
                     "localSavesOnly" to state.localSavesOnly,
                     "steamOfflineMode" to state.steamOfflineMode,
                     "epicOfflineMode" to state.epicOfflineMode,
-                    "useLegacyDRM" to state.useLegacyDRM,
-                    "unpackFiles" to state.unpackFiles,
                     "suspendPolicy" to state.suspendPolicy,
                     "portraitMode" to state.portraitMode,
                     "sharpnessEffect" to state.sharpnessEffect,
@@ -261,7 +252,6 @@ data class ContainerData(
                     enableDInput = savedMap["enableDInput"] as Boolean,
                     dinputMapperType = savedMap["dinputMapperType"] as Byte,
                     disableMouseInput = savedMap["disableMouseInput"] as Boolean,
-                    touchscreenMode = savedMap["touchscreenMode"] as Boolean,
                     shooterMode = (savedMap["shooterMode"] as? Boolean) ?: true,
                     gestureConfig = (savedMap["gestureConfig"] as? String) ?: "",
                     shooterConfig = (savedMap["shooterConfig"] as? String) ?: "",
@@ -269,12 +259,9 @@ data class ContainerData(
                     externalDisplaySwap = (savedMap["externalDisplaySwap"] as? Boolean) ?: false,
                     useDRI3 = (savedMap["useDRI3"] as? Boolean) ?: true,
                     language = (savedMap["language"] as? String) ?: "english",
-                    forceDlc = (savedMap["forceDlc"] as? Boolean) ?: false,
                     localSavesOnly = (savedMap["localSavesOnly"] as? Boolean) ?: false,
                     steamOfflineMode = (savedMap["steamOfflineMode"] as? Boolean) ?: false,
                     epicOfflineMode = (savedMap["epicOfflineMode"] as? Boolean) ?: false,
-                    useLegacyDRM = (savedMap["useLegacyDRM"] as? Boolean) ?: false,
-                    unpackFiles = (savedMap["unpackFiles"] as? Boolean) ?: false,
                     suspendPolicy = (savedMap["suspendPolicy"] as? String) ?: Container.SUSPEND_POLICY_MANUAL,
                     portraitMode = (savedMap["portraitMode"] as? Boolean) ?: false,
                     sharpnessEffect = (savedMap["sharpnessEffect"] as? String) ?: "None",

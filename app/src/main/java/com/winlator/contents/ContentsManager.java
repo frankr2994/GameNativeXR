@@ -228,14 +228,19 @@ public class ContentsManager {
             return;
         }
 
-        if (!installPath.mkdirs()) {
-            callback.onFailed(InstallFailedReason.ERROR_UNKNOWN, null);
-            return;
+        File parent = installPath.getParentFile();
+        if (parent != null && !parent.exists()) {
+            parent.mkdirs();
         }
 
-        if (!getTmpDir(context).renameTo(installPath)) {
-            callback.onFailed(InstallFailedReason.ERROR_UNKNOWN, null);
-            return;
+        File tmpDir = getTmpDir(context);
+        if (!tmpDir.renameTo(installPath)) {
+            try {
+                java.nio.file.Files.move(tmpDir.toPath(), installPath.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (Exception e) {
+                callback.onFailed(InstallFailedReason.ERROR_UNKNOWN, null);
+                return;
+            }
         }
         // For Wine/Proton, normalize directory structure and set executable permissions
         if (profile.type == ContentProfile.ContentType.CONTENT_TYPE_WINE

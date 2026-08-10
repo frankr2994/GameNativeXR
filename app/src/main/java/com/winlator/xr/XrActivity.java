@@ -66,6 +66,9 @@ public class XrActivity extends MainActivity {
     private static final String EXTRA_CONTAINER_ID = "EXTRA_CONTAINER_ID";
     private static final String EXTRA_OPEN_CONTAINER = "EXTRA_OPEN_CONTAINER";
     private static final String EXTRA_REBOOT_XR = "EXTRA_REBOOT_XR";
+    /** Required by the Quest OpenXR Android activity contract. */
+    private static final String OPENXR_IMMERSIVE_HMD_CATEGORY =
+            "org.khronos.openxr.intent.category.IMMERSIVE_HMD";
 
     private static XrActivity instance;
     public Container container;
@@ -279,19 +282,31 @@ public class XrActivity extends MainActivity {
     public static void openIntent(Context context, String containerId, boolean openContainer, boolean xr) {
         // Create the launch intent
         Class runtime = xr ? getRuntime() : XrActivity.class;
-        Intent intent = new Intent(context, runtime);
+        Intent intent = xr
+                ? new Intent(Intent.ACTION_MAIN).setClass(context, runtime)
+                : new Intent(context, runtime);
+        if (xr) {
+            // Do not force an immersive OpenXR activity onto Android's flat display. Quest uses
+            // this category to grant the focused XR session that owns controller input.
+            intent.addCategory(OPENXR_IMMERSIVE_HMD_CATEGORY);
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        }
         intent.putExtra(EXTRA_CONTAINER_ID, containerId);
         intent.putExtra(EXTRA_OPEN_CONTAINER, openContainer);
         intent.putExtra(EXTRA_REBOOT_XR, !xr);
 
         // Set the activity flags
-        final int mainDisplayId = Display.DEFAULT_DISPLAY;
-        ActivityOptions options = ActivityOptions.makeBasic().setLaunchDisplayId(mainDisplayId);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                 Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         // Launch the activity
-        context.startActivity(intent, options.toBundle());
+        if (xr) {
+            context.startActivity(intent);
+        } else {
+            final int mainDisplayId = Display.DEFAULT_DISPLAY;
+            ActivityOptions options = ActivityOptions.makeBasic().setLaunchDisplayId(mainDisplayId);
+            context.startActivity(intent, options.toBundle());
+        }
 
         // Close existing activity
         while (context instanceof ContextWrapper) {

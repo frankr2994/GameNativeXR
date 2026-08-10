@@ -106,6 +106,7 @@ public class BionicProgramLauncherComponent extends GuestProgramLauncherComponen
             if (preUnpack != null) preUnpack.run();
             pid = execGuestProgram();
             Log.d("BionicProgramLauncherComponent", "Process " + pid + " started");
+            notifyProcessStarted(pid);
             SteamService.setKeepAlive(true);
         }
     }

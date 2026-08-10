@@ -132,12 +132,15 @@ public class Container {
     private String language = "english";
 
     private ContainerManager containerManager;
+    // Non-null only while a launch-only execution overlay is applied.  Save requests must still
+    // persist runtime state (for example completed prerequisites), but these execution fields
+    // must retain their pre-launch values on disk.
+    private volatile JSONObject launchExecutionPersistenceOverrides;
 
     private byte dinputMapperType = 1;  // 1=standard, 2=XInput mapper
     // Disable external mouse input
     private boolean disableMouseInput = false;
     // Touchscreen mode (defaults on for XR builds)
-    private boolean touchscreenMode = app.gamenative.BuildConfig.XR_BUILD;
     // Shooter mode
     private boolean shooterMode = true;
     // Serialised JSON gesture configuration (used when touchscreenMode is true)
@@ -153,19 +156,11 @@ public class Container {
     // Steam client type for selecting appropriate Box64 RC config: normal, light, ultralight
     private String steamType = DefaultVersion.STEAM_TYPE;
 
-    private boolean gstreamerWorkaround = false;
-
-    private boolean forceDlc = false;
-
     private boolean localSavesOnly = false;
 
     private boolean steamOfflineMode = false;
 
     private boolean epicOfflineMode = false;
-
-    private boolean useLegacyDRM = false;
-
-    private boolean unpackFiles = false;
 
     private String suspendPolicy = SUSPEND_POLICY_MANUAL;
 
@@ -502,14 +497,6 @@ public class Container {
         this.extraData = extraData;
     }
 
-    public boolean isGstreamerWorkaround() { // Add this getter
-        return this.gstreamerWorkaround;
-    }
-
-    public void setGstreamerWorkaround(boolean gstreamerWorkaround) { // Add this setter
-        this.gstreamerWorkaround = gstreamerWorkaround;
-    }
-
     public void setContainerVariant(String variant) {
         this.containerVariant = variant;
     }
@@ -584,6 +571,35 @@ public class Container {
 
     public File getConfigFile() {
         return new File(rootDir, ".container");
+    }
+
+    public JSONObject getLaunchExecutionPersistenceOverrides() {
+        JSONObject overrides = launchExecutionPersistenceOverrides;
+        if (overrides == null) return null;
+        try {
+            return new JSONObject(overrides.toString());
+        }
+        catch (JSONException e) {
+            throw new IllegalStateException("Failed to copy launch execution persistence overrides", e);
+        }
+    }
+
+    /**
+     * Sets the values which must be written when code calls {@link #saveData()} during a
+     * launch-only execution overlay.  The live container continues exposing the resolved values
+     * to the environment; only the serialized execution configuration is pinned to this snapshot.
+     */
+    public void setLaunchExecutionPersistenceOverrides(JSONObject overrides) {
+        if (overrides == null) {
+            launchExecutionPersistenceOverrides = null;
+            return;
+        }
+        try {
+            launchExecutionPersistenceOverrides = new JSONObject(overrides.toString());
+        }
+        catch (JSONException e) {
+            throw new IllegalArgumentException("Invalid launch execution persistence overrides", e);
+        }
     }
 
     public File getDesktopDir() {
@@ -724,8 +740,6 @@ public class Container {
             data.put("sdlControllerAPI", sdlControllerAPI);
             // Disable mouse input flag
             data.put("disableMouseInput", disableMouseInput);
-            // Touchscreen mode flag
-            data.put("touchscreenMode", touchscreenMode);
             // Shooter mode flag
             data.put("shooterMode", shooterMode);
             // Gesture configuration JSON
@@ -746,9 +760,6 @@ public class Container {
             data.put("emulator", emulator);
             data.put("fexcoreVersion", fexcoreVersion);
 
-            // Force DLC setting
-            data.put("forceDlc", forceDlc);
-
             // Local saves only setting
             data.put("localSavesOnly", localSavesOnly);
 
@@ -757,12 +768,6 @@ public class Container {
 
             // Steam offline mode setting
             data.put("epicOfflineMode", epicOfflineMode);
-
-            // Use Legacy DRM setting
-            data.put("useLegacyDRM", useLegacyDRM);
-
-            // Unpack Files setting
-            data.put("unpackFiles", unpackFiles);
 
             // Process suspend policy setting
             data.put("suspendPolicy", suspendPolicy);
@@ -787,11 +792,56 @@ public class Container {
             data.put("xrUseTrackIR", xrUseTrackIR);
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
+            applyLaunchExecutionPersistenceOverrides(data);
             FileUtils.writeString(getConfigFile(), data.toString());
         }
         catch (JSONException e) {
             Log.e("Container", "Failed to save data: " + e);
         }
+    }
+
+    /**
+     * A resolved hardware profile is intentionally ephemeral.  If regular launch work needs to
+     * save unrelated container state, retain the original persisted execution settings instead of
+     * serializing the active overlay.
+     */
+    private void applyLaunchExecutionPersistenceOverrides(JSONObject data) throws JSONException {
+        JSONObject overrides = launchExecutionPersistenceOverrides;
+        if (overrides == null) return;
+
+        String[] directKeys = {
+            "containerVariant",
+            "wow64Mode",
+            "emulator",
+            "fexcoreVersion",
+            "fexcorePreset",
+            "box86Version",
+            "box64Version",
+            "box86Preset",
+            "box64Preset",
+            "graphicsDriver",
+            "graphicsDriverVersion",
+            "dxwrapper",
+        };
+        for (String key : directKeys) {
+            if (overrides.has(key)) data.put(key, overrides.get(key));
+        }
+
+        applyOptionalExecutionConfig(data, overrides, "graphicsDriverConfig");
+        applyOptionalExecutionConfig(data, overrides, "dxwrapperConfig");
+
+        if (overrides.has("wineVersion")) {
+            String persistedWineVersion = overrides.getString("wineVersion");
+            if (WineInfo.isMainWineVersion(persistedWineVersion)) data.remove("wineVersion");
+            else data.put("wineVersion", persistedWineVersion);
+        }
+    }
+
+    private static void applyOptionalExecutionConfig(JSONObject data, JSONObject overrides, String key) throws JSONException {
+        if (!overrides.has(key)) return;
+        String value = overrides.getString(key);
+        if (value.isEmpty()) data.remove(key);
+        else data.put(key, value);
     }
 
     public void loadData(JSONObject data) throws JSONException {
@@ -948,9 +998,7 @@ public class Container {
                 case "disableMouseInput" :
                     setDisableMouseInput(data.getBoolean(key));
                     break;
-                case "touchscreenMode" :
-                    setTouchscreenMode(data.getBoolean(key));
-                    break;
+
                 case "shooterMode" :
                     setShooterMode(data.getBoolean(key));
                     break;
@@ -975,9 +1023,6 @@ public class Container {
                 case "installPath":
                     setInstallPath(data.getString(key));
                     break;
-                case "forceDlc":
-                    this.forceDlc = data.getBoolean(key);
-                    break;
                 case "localSavesOnly":
                     this.localSavesOnly = data.getBoolean(key);
                     break;
@@ -986,12 +1031,6 @@ public class Container {
                     break;
                 case "epicOfflineMode":
                     this.epicOfflineMode = data.getBoolean(key);
-                    break;
-                case "useLegacyDRM":
-                    this.useLegacyDRM = data.getBoolean(key);
-                    break;
-                case "unpackFiles":
-                    this.unpackFiles = data.getBoolean(key);
                     break;
                 case "suspendPolicy":
                     setSuspendPolicy(data.getString(key));
@@ -1113,14 +1152,6 @@ public class Container {
         }
     }
 
-    public boolean isForceDlc() {
-        return forceDlc;
-    }
-
-    public void setForceDlc(boolean forceDlc) {
-        this.forceDlc = forceDlc;
-    }
-
     public boolean isLocalSavesOnly() {
         return localSavesOnly;
     }
@@ -1143,22 +1174,6 @@ public class Container {
 
     public void setEpicOfflineMode(boolean epicOfflineMode) {
         this.epicOfflineMode = epicOfflineMode;
-    }
-
-    public boolean isUseLegacyDRM() {
-        return useLegacyDRM;
-    }
-
-    public void setUseLegacyDRM(boolean useLegacyDRM) {
-        this.useLegacyDRM = useLegacyDRM;
-    }
-
-    public boolean isUnpackFiles() {
-        return unpackFiles;
-    }
-
-    public void setUnpackFiles(boolean unpackFiles) {
-        this.unpackFiles = unpackFiles;
     }
 
     public static String normalizeSuspendPolicy(String suspendPolicy) {
@@ -1325,13 +1340,6 @@ public class Container {
     }
 
     // Touchscreen mode
-    public boolean isTouchscreenMode() {
-        return touchscreenMode;
-    }
-
-    public void setTouchscreenMode(boolean touchscreenMode) {
-        this.touchscreenMode = touchscreenMode;
-    }
 
     // Shooter mode
     public boolean isShooterMode() {

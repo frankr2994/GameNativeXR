@@ -75,6 +75,7 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
             if (preUnpack != null) preUnpack.run();
             pid = execGuestProgram();
             Log.d("GlibcProgramLauncherComponent", "Process " + pid + " started");
+            notifyProcessStarted(pid);
             SteamService.setKeepAlive(true);
         }
     }

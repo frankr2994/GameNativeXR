@@ -35,6 +35,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private String box86Preset = Box86_64Preset.COMPATIBILITY;
     private String box64Preset = Box86_64Preset.COMPATIBILITY;
     private Callback<Integer> terminationCallback;
+    private Callback<Integer> processStartedCallback;
     private static final Object lock = new Object();
     private boolean wow64Mode = true;
     private File workingDir;
@@ -63,6 +64,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
             extractBox86_64Files();
             pid = execGuestProgram();
             Log.d("GuestProgramLauncherComponent", "Process " + pid + " started");
+            notifyProcessStarted(pid);
         }
     }
 
@@ -94,6 +96,16 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
 
     public void setTerminationCallback(Callback<Integer> terminationCallback) {
         this.terminationCallback = terminationCallback;
+    }
+
+    public void setProcessStartedCallback(Callback<Integer> processStartedCallback) {
+        this.processStartedCallback = processStartedCallback;
+    }
+
+    protected final void notifyProcessStarted(int processId) {
+        if (processId > 0 && processStartedCallback != null) {
+            processStartedCallback.call(processId);
+        }
     }
 
     public String getSteamType() { return steamType; }

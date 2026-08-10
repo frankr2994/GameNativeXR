@@ -92,9 +92,14 @@ public class WineRegistryEditor implements Closeable {
     @Override
     public void close() {
         if (modified && cloneFile.exists()) {
-            cloneFile.renameTo(file);
+            safeRename(cloneFile, file);
         }
         else cloneFile.delete();
+    }
+
+    private void safeRename(File src, File dest) {
+        if (dest.exists()) dest.delete();
+        src.renameTo(dest);
     }
 
     private void resetLastParentKeyPositionIfNeed(String newKey) {
@@ -152,7 +157,7 @@ public class WineRegistryEditor implements Closeable {
 
         if (success) {
             modified = true;
-            tempFile.renameTo(cloneFile);
+            safeRename(tempFile, cloneFile);
             return new Location(offset, totalLength, totalLength);
         }
         else {
@@ -288,7 +293,7 @@ public class WineRegistryEditor implements Closeable {
 
         if (success) {
             modified = true;
-            tempFile.renameTo(cloneFile);
+            safeRename(tempFile, cloneFile);
         }
         else tempFile.delete();
     }
@@ -404,7 +409,7 @@ public class WineRegistryEditor implements Closeable {
         }
         if (success) {
             this.modified = true;
-            tempFile.renameTo(this.cloneFile);
+            safeRename(tempFile, this.cloneFile);
         } else {
             tempFile.delete();
         }
@@ -467,7 +472,7 @@ public class WineRegistryEditor implements Closeable {
 
         if (success) {
             modified = true;
-            tempFile.renameTo(cloneFile);
+            safeRename(tempFile, cloneFile);
         }
         else tempFile.delete();
         return success;
