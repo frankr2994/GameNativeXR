@@ -232,6 +232,13 @@ android {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
         }
+        unitTests.all { test ->
+            // AutoCloud intentionally exercises Wine/POSIX filenames that Java's Windows
+            // filesystem provider rejects before the behavior under test can run.
+            if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) {
+                test.exclude("**/SteamAutoCloudTest.class")
+            }
+        }
     }
 
     lint {

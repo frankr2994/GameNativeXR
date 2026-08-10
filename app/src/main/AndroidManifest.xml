@@ -184,6 +184,14 @@
             android:screenOrientation="landscape"
             android:process=":vr_process"
             android:theme="@style/AppThemeFullscreen">
+            <!-- Meta's OpenXR Android contract. This is required for an immersive session to
+                 receive XR focus and controller actions on Quest. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="org.khronos.openxr.intent.category.IMMERSIVE_HMD" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Retained for compatibility with existing legacy-VR launch routes. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="com.oculus.intent.category.VR" />
