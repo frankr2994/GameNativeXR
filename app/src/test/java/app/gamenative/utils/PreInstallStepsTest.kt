@@ -14,6 +14,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import java.io.File
 import kotlin.io.path.createTempDirectory
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 
 @RunWith(RobolectricTestRunner::class)
 class PreInstallStepsTest {
@@ -38,16 +40,26 @@ class PreInstallStepsTest {
 
     @Before
     fun setUp() {
+        mockkStatic(Container::class)
         container = mockk(relaxed = true)
         gameDir = createTempDirectory(prefix = "preinstall-steps-test").toFile()
         every { container.drives } returns "A:${gameDir.absolutePath}"
         every { container.containerVariant } returns Container.BIONIC
+        every { Container.drivesIterator(any()) } answers {
+            val drivesStr = firstArg<String>()
+            if (drivesStr == "D:/tmp") {
+                listOf(arrayOf("D", "/tmp"))
+            } else {
+                listOf(arrayOf("A", gameDir.absolutePath))
+            }
+        }
     }
 
     @After
     fun tearDown() {
         PreInstallSteps.setStepsProviderForTests(null)
         gameDir.deleteRecursively()
+        unmockkStatic(Container::class)
     }
 
     @Test
@@ -67,7 +79,9 @@ class PreInstallStepsTest {
 
     @Test
     fun getPreInstallCommands_buildsWrappedGuestCommand_forDetectedInstallerStep() {
-        File(gameDir, "UbisoftConnectInstaller.exe").writeText("dummy")
+        val commonRedist = File(gameDir, "_CommonRedist/UbisoftConnect")
+        commonRedist.mkdirs()
+        File(commonRedist, "UbisoftConnectInstaller.exe").writeText("dummy")
 
         val result = PreInstallSteps.getPreInstallCommands(
             container = container,
@@ -89,7 +103,9 @@ class PreInstallStepsTest {
 
     @Test
     fun getPreInstallCommands_resetsMarkers_whenContainerVariantChanged() {
-        File(gameDir, "UbisoftConnectInstaller.exe").writeText("dummy")
+        val commonRedist = File(gameDir, "_CommonRedist/UbisoftConnect")
+        commonRedist.mkdirs()
+        File(commonRedist, "UbisoftConnectInstaller.exe").writeText("dummy")
         MarkerUtils.addMarker(gameDir.absolutePath, Marker.UBISOFT_CONNECT_INSTALLED)
 
         val withoutReset = PreInstallSteps.getPreInstallCommands(

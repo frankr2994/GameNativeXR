@@ -11,14 +11,12 @@ class SteamUtilsColdClientIniTest {
         exeCommandLine: String = "",
         steamAppId: Int = 35140,
         workingDir: String? = null,
-        isUnpackFiles: Boolean = false,
     ) = SteamUtils.generateColdClientIni(
         gameName = gameName,
         executablePath = executablePath,
         exeCommandLine = exeCommandLine,
         steamAppId = steamAppId,
         workingDir = workingDir,
-        isUnpackFiles = isUnpackFiles,
     )
 
     private fun String.iniValue(key: String): String =

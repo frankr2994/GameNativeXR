@@ -89,11 +89,8 @@ class EpicCloudSavesTest {
             mkdirs()
         }
 
-        val metadataPath = File(wineUserDir, "AppData/locallow/ZAUM Studio/Disco Elysium/SaveGames")
-            .absolutePath
-            .replace('\\', '/')
-
-        val resolved = FileUtils.resolveCaseInsensitive(File("/"), metadataPath)
+        val metadataPath = "AppData/locallow/ZAUM Studio/Disco Elysium/SaveGames"
+        val resolved = FileUtils.resolveCaseInsensitive(wineUserDir, metadataPath)
 
         assertEquals(saveDir.absolutePath, resolved.absolutePath)
         assertTrue(resolved.exists())

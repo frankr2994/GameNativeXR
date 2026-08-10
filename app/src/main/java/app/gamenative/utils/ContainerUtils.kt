@@ -141,12 +141,9 @@ object ContainerUtils {
             desktopTheme = WineThemeManager.DEFAULT_DESKTOP_THEME,
             language = PrefManager.containerLanguage,
             containerVariant = PrefManager.containerVariant,
-            forceDlc = PrefManager.forceDlc,
             localSavesOnly = PrefManager.localSavesOnly,
             steamOfflineMode = PrefManager.steamOfflineMode,
             epicOfflineMode = PrefManager.epicOfflineMode,
-            useLegacyDRM = PrefManager.useLegacyDRM,
-            unpackFiles = PrefManager.unpackFiles,
             suspendPolicy = PrefManager.suspendPolicy,
             wineVersion = PrefManager.wineVersion,
             emulator = PrefManager.emulator,
@@ -246,12 +243,9 @@ object ContainerUtils {
         PrefManager.xinputEnabled = containerData.enableXInput
 		PrefManager.dinputEnabled = containerData.enableDInput
 		PrefManager.dinputMapperType = containerData.dinputMapperType.toInt()
-        PrefManager.forceDlc = containerData.forceDlc
         PrefManager.localSavesOnly = containerData.localSavesOnly
         PrefManager.steamOfflineMode = containerData.steamOfflineMode
         PrefManager.epicOfflineMode = containerData.epicOfflineMode
-        PrefManager.useLegacyDRM = containerData.useLegacyDRM
-        PrefManager.unpackFiles = containerData.unpackFiles
         PrefManager.suspendPolicy = containerData.suspendPolicy
         PrefManager.portraitMode = containerData.portraitMode
         PrefManager.xrButtonA = containerData.xrButtonA
@@ -317,7 +311,6 @@ object ContainerUtils {
         // Read disable-mouse flag from container
         val disableMouse = container.isDisableMouseInput()
         // Read touchscreen-mode flag from container
-        val touchscreenMode = container.isTouchscreenMode()
         // Read shooter-mode flag from container
         val shooterMode = container.isShooterMode()
         // Read gesture configuration JSON
@@ -367,12 +360,9 @@ object ContainerUtils {
             language = container.language,
             sdlControllerAPI = container.isSdlControllerAPI,
             useSteamInput = useSteamInput,
-            forceDlc = container.isForceDlc,
             localSavesOnly = container.isLocalSavesOnly,
             steamOfflineMode = container.isSteamOfflineMode(),
             epicOfflineMode = container.isEpicOfflineMode(),
-            useLegacyDRM = container.isUseLegacyDRM(),
-            unpackFiles = container.isUnpackFiles(),
             suspendPolicy = container.suspendPolicy,
             portraitMode = container.isPortraitMode,
             xrButtonA = container.getExtra("xrButtonA", "" + Container.DEFAULT_XR_BUTTON_A).toIntOrNull() ?: Container.DEFAULT_XR_BUTTON_A,
@@ -395,7 +385,6 @@ object ContainerUtils {
             enableDInput = enableD,
             dinputMapperType = mapperType,
             disableMouseInput = disableMouse,
-            touchscreenMode = touchscreenMode,
             shooterMode = shooterMode,
             gestureConfig = gestureConfig,
             shooterConfig = shooterConfig,
@@ -474,10 +463,8 @@ object ContainerUtils {
                     ?: updatedData
                 "fexcorePreset" -> value?.let { updatedData.copy(fexcorePreset = it as? String ?: updatedData.fexcorePreset) }
                     ?: updatedData
-                "useLegacyDRM" -> value?.let { updatedData.copy(useLegacyDRM = it as? Boolean ?: updatedData.useLegacyDRM) } ?: updatedData
                 "steamOfflineMode" -> value?.let { updatedData.copy(steamOfflineMode = it as? Boolean ?: updatedData.steamOfflineMode) } ?: updatedData
                 "epicOfflineMode" -> value?.let { updatedData.copy(epicOfflineMode = it as? Boolean ?: updatedData.epicOfflineMode) } ?: updatedData
-                "unpackFiles" -> value?.let { updatedData.copy(unpackFiles = it as? Boolean ?: updatedData.unpackFiles) } ?: updatedData
                 "suspendPolicy" -> value?.let { updatedData.copy(suspendPolicy = it as? String ?: updatedData.suspendPolicy) } ?: updatedData
                 "envVars" -> value?.let { updatedData.copy(envVars = it as? String ?: updatedData.envVars) } ?: updatedData
                 "cpuList" -> value?.let { updatedData.copy(cpuList = it as? String ?: updatedData.cpuList) } ?: updatedData
@@ -503,10 +490,7 @@ object ContainerUtils {
         } catch (e: Exception) {
             container.getExtra("language", "english")
         }
-        val previousForceDlc: Boolean = container.isForceDlc
         val previousSteamOfflineMode: Boolean = container.isSteamOfflineMode()
-
-        val previousUnpackFiles: Boolean = container.isUnpackFiles
         val previousLaunchBionicSteam: Boolean = container.isLaunchBionicSteam
         val previousLaunchRealSteam: Boolean = container.isLaunchRealSteam
         val userRegFile = File(container.rootDir, ".wine/user.reg")
@@ -574,18 +558,14 @@ object ContainerUtils {
         container.fexCoreVersion = containerData.fexcoreVersion
         container.setFEXCorePreset(containerData.fexcorePreset)
         container.setDisableMouseInput(containerData.disableMouseInput)
-        container.setTouchscreenMode(containerData.touchscreenMode)
         container.setShooterMode(containerData.shooterMode)
         container.setGestureConfig(containerData.gestureConfig)
         container.setShooterConfig(containerData.shooterConfig)
         container.setExternalDisplayMode(containerData.externalDisplayMode)
         container.setExternalDisplaySwap(containerData.externalDisplaySwap)
-        container.setForceDlc(containerData.forceDlc)
         container.setLocalSavesOnly(containerData.localSavesOnly)
         container.setSteamOfflineMode(containerData.steamOfflineMode)
         container.setEpicOfflineMode(containerData.epicOfflineMode)
-        container.setUseLegacyDRM(containerData.useLegacyDRM)
-        container.setUnpackFiles(containerData.unpackFiles)
         container.setSuspendPolicy(containerData.suspendPolicy)
         container.setPortraitMode(containerData.portraitMode)
         container.setXrButtonA(containerData.xrButtonA)
@@ -604,9 +584,6 @@ object ContainerUtils {
         container.setXrUseReshade(containerData.xrUseReshade)
         container.setXrForceDCGI(containerData.xrForceDCGI)
         container.setXrUseTrackIR(containerData.xrUseTrackIR)
-        if (previousUnpackFiles != containerData.unpackFiles && containerData.unpackFiles) {
-            container.setNeedsUnpacking(true)
-        }
         container.putExtra("xrButtonA", containerData.xrButtonA.toString())
         container.putExtra("xrButtonB", containerData.xrButtonB.toString())
         container.putExtra("xrButtonX", containerData.xrButtonX.toString())
@@ -640,13 +617,6 @@ object ContainerUtils {
             MarkerUtils.removeMarker(appDirPath, Marker.STEAM_DLL_REPLACED)
             MarkerUtils.removeMarker(appDirPath, Marker.STEAM_COLDCLIENT_USED)
             Timber.i("Language changed from '$previousLanguage' to '${containerData.language}'. Cleared STEAM_DLL_REPLACED marker for container ${container.id}.")
-        }
-        if (previousForceDlc != containerData.forceDlc) {
-            val steamAppId = extractGameIdFromContainerId(container.id)
-            val appDirPath = SteamService.getAppDirPath(steamAppId)
-            MarkerUtils.removeMarker(appDirPath, Marker.STEAM_DLL_REPLACED)
-            MarkerUtils.removeMarker(appDirPath, Marker.STEAM_COLDCLIENT_USED)
-            Timber.i("forceDlc changed from '$previousForceDlc' to '${containerData.forceDlc}'. Cleared STEAM_DLL_REPLACED marker for container ${container.id}.")
         }
         if (previousSteamOfflineMode != containerData.steamOfflineMode) {
             val steamAppId = extractGameIdFromContainerId(container.id)
@@ -992,11 +962,8 @@ object ContainerUtils {
                 enableDInput = PrefManager.dinputEnabled,
                 dinputMapperType = PrefManager.dinputMapperType.toByte(),
                 disableMouseInput = PrefManager.disableMouseInput,
-                forceDlc = PrefManager.forceDlc,
                 steamOfflineMode = PrefManager.steamOfflineMode,
                 epicOfflineMode = PrefManager.epicOfflineMode,
-                useLegacyDRM = PrefManager.useLegacyDRM,
-                unpackFiles = PrefManager.unpackFiles,
                 suspendPolicy = PrefManager.suspendPolicy,
                 portraitMode = PrefManager.portraitMode,
                 xrButtonA = PrefManager.xrButtonA,

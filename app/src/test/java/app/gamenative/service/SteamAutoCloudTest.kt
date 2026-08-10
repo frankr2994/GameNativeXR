@@ -3,6 +3,7 @@ package app.gamenative.service
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.gamenative.PrefManager
 import app.gamenative.data.ConfigInfo
 import app.gamenative.data.FileChangeLists
 import app.gamenative.data.PostSyncInfo
@@ -83,6 +84,7 @@ class SteamAutoCloudTest {
         every { Net.httpForParallelDownloads(any()) } returns mockParallelHttpClient
 
         context = ApplicationProvider.getApplicationContext()
+        PrefManager.init(context)
         tempDir = File.createTempFile("steam_autocloud_test_", null)
         tempDir.delete()
         tempDir.mkdirs()
@@ -90,7 +92,6 @@ class SteamAutoCloudTest {
         // Set up DownloadService paths
         DownloadService.populateDownloadService(context)
         File(SteamService.internalAppInstallPath).mkdirs()
-        SteamService.externalAppInstallPath.takeIf { it.isNotBlank() }?.let { File(it).mkdirs() }
 
         // Set up ImageFs
         val imageFs = ImageFs.find(context)
@@ -108,11 +109,9 @@ class SteamAutoCloudTest {
 
         // Create save files directory structure matching Windows path
         // %WinMyDocuments%My Games/TestGame/Steam/76561198025127569
-        val wineprefix = File(imageFs.wineprefix)
+        val wineprefix = File(containerDir, ".wine")
         wineprefix.mkdirs()
-        val dosDevices = File(wineprefix, "dosdevices")
-        dosDevices.mkdirs()
-        val cDrive = File(dosDevices, "c:")
+        val cDrive = File(wineprefix, "drive_c")
         cDrive.mkdirs()
         val users = File(cDrive, "users")
         users.mkdirs()

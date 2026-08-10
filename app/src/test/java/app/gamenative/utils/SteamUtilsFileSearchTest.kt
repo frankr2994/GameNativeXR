@@ -67,8 +67,9 @@ class SteamUtilsFileSearchTest {
         File(SteamService.internalAppInstallPath).mkdirs()
         SteamService.externalAppInstallPath.takeIf { it.isNotBlank() }?.let { File(it).mkdirs() }
 
-        // Create app directory that SteamService.getAppDirPath will return
-        appDir = File(SteamService.internalAppInstallPath, "123456")
+        // Create unique app directory that SteamService.getAppDirPath will return
+        val uniqueAppId = "123456_${System.nanoTime()}"
+        appDir = File(SteamService.internalAppInstallPath, uniqueAppId)
         appDir.mkdirs()
 
         // Set up ImageFs for restoreOriginalExecutable
@@ -107,7 +108,7 @@ class SteamUtilsFileSearchTest {
         val testApp = SteamApp(
             id = steamAppId,
             name = "Test Game",
-            config = ConfigInfo(installDir = "123456"),  // This is what getAppDirName() will use
+            config = ConfigInfo(installDir = appDir.name),  // This is what getAppDirName() will use
             type = AppType.game,
             osList = EnumSet.of(OS.windows),
             releaseState = ReleaseState.released,
@@ -231,7 +232,7 @@ class SteamUtilsFileSearchTest {
     fun restoreOriginalExecutable_findsAndRestoresOriginalExe() {
         // Set up dosdevices path
         val imageFs = ImageFs.find(context)
-        val dosDevicesPath = File(imageFs.wineprefix, "dosdevices/a:")
+        val dosDevicesPath = appDir
         dosDevicesPath.mkdirs()
 
         // Create multiple .original.exe files in different folders
@@ -260,7 +261,7 @@ class SteamUtilsFileSearchTest {
     fun restoreOriginalExecutable_respectsMaxDepth() {
         // Set up dosdevices path
         val imageFs = ImageFs.find(context)
-        val dosDevicesPath = File(imageFs.wineprefix, "dosdevices/a:")
+        val dosDevicesPath = appDir
         dosDevicesPath.mkdirs()
 
         // Create directory structure deeper than max depth (5)
@@ -286,7 +287,7 @@ class SteamUtilsFileSearchTest {
     fun restoreOriginalExecutable_doesNotFailWhenNoBackupFound() {
         // Set up dosdevices path with no backup files
         val imageFs = ImageFs.find(context)
-        val dosDevicesPath = File(imageFs.wineprefix, "dosdevices/a:")
+        val dosDevicesPath = appDir
         dosDevicesPath.mkdirs()
 
         // Call the actual function - should not throw
@@ -558,7 +559,7 @@ class SteamUtilsFileSearchTest {
 
         // Create game.exe files
         val imageFs = ImageFs.find(context)
-        val dosDevicesPath = File(imageFs.wineprefix, "dosdevices/a:")
+        val dosDevicesPath = appDir
         dosDevicesPath.mkdirs()
         val gameExe = File(dosDevicesPath, "game.exe")
         val gameExeUnpacked = File(dosDevicesPath, "game.exe.unpacked.exe")
@@ -798,7 +799,7 @@ class SteamUtilsFileSearchTest {
 
         // Create game.exe files
         val imageFs = ImageFs.find(context)
-        val dosDevicesPath = File(imageFs.wineprefix, "dosdevices/a:")
+        val dosDevicesPath = appDir
         dosDevicesPath.mkdirs()
         val gameExe = File(dosDevicesPath, "game.exe")
         val gameExeUnpacked = File(dosDevicesPath, "game.exe.unpacked.exe")
@@ -990,7 +991,7 @@ class SteamUtilsFileSearchTest {
 
         // Create game.exe files
         val imageFs = ImageFs.find(context)
-        val dosDevicesPath = File(imageFs.wineprefix, "dosdevices/a:")
+        val dosDevicesPath = appDir
         dosDevicesPath.mkdirs()
         val gameExe = File(dosDevicesPath, "game.exe")
         val gameExeUnpacked = File(dosDevicesPath, "game.exe.unpacked.exe")

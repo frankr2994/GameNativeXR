@@ -14,7 +14,7 @@ import org.robolectric.RobolectricTestRunner
 @RunWith(RobolectricTestRunner::class)
 class PathTypeTest {
 
-    private val containerRoot = "/data/test/container"
+    private val containerRoot = File("/data/test/container").absolutePath.replace('\\', '/')
     private val container = Container("test-id").apply { setRootDir(File(containerRoot)) }
     private val appId = 220
     private val accountId = 76561198025127569L
@@ -23,7 +23,7 @@ class PathTypeTest {
     fun `SteamUserData resolves to Steam userdata remote directory`() {
         assertEquals(
             "$containerRoot/.wine/drive_c/Program Files (x86)/Steam/userdata/$accountId/$appId/remote/",
-            PathType.SteamUserData.toAbsPath(container, appId, accountId),
+            normalized(PathType.SteamUserData.toAbsPath(container, appId, accountId)),
         )
     }
 
@@ -31,7 +31,7 @@ class PathTypeTest {
     fun `WinMyDocuments resolves to Documents folder in wine prefix`() {
         assertEquals(
             "$containerRoot/.wine/drive_c/users/${ImageFs.USER}/Documents/",
-            PathType.WinMyDocuments.toAbsPath(container, appId, accountId),
+            normalized(PathType.WinMyDocuments.toAbsPath(container, appId, accountId)),
         )
     }
 
@@ -39,7 +39,7 @@ class PathTypeTest {
     fun `WinAppDataLocal resolves to AppData Local in wine prefix`() {
         assertEquals(
             "$containerRoot/.wine/drive_c/users/${ImageFs.USER}/AppData/Local/",
-            PathType.WinAppDataLocal.toAbsPath(container, appId, accountId),
+            normalized(PathType.WinAppDataLocal.toAbsPath(container, appId, accountId)),
         )
     }
 
@@ -47,7 +47,7 @@ class PathTypeTest {
     fun `WinAppDataLocalLow resolves to AppData LocalLow in wine prefix`() {
         assertEquals(
             "$containerRoot/.wine/drive_c/users/${ImageFs.USER}/AppData/LocalLow/",
-            PathType.WinAppDataLocalLow.toAbsPath(container, appId, accountId),
+            normalized(PathType.WinAppDataLocalLow.toAbsPath(container, appId, accountId)),
         )
     }
 
@@ -55,7 +55,7 @@ class PathTypeTest {
     fun `WinAppDataRoaming resolves to AppData Roaming in wine prefix`() {
         assertEquals(
             "$containerRoot/.wine/drive_c/users/${ImageFs.USER}/AppData/Roaming/",
-            PathType.WinAppDataRoaming.toAbsPath(container, appId, accountId),
+            normalized(PathType.WinAppDataRoaming.toAbsPath(container, appId, accountId)),
         )
     }
 
@@ -63,7 +63,7 @@ class PathTypeTest {
     fun `WinSavedGames resolves to Saved Games folder in wine prefix`() {
         assertEquals(
             "$containerRoot/.wine/drive_c/users/${ImageFs.USER}/Saved Games/",
-            PathType.WinSavedGames.toAbsPath(container, appId, accountId),
+            normalized(PathType.WinSavedGames.toAbsPath(container, appId, accountId)),
         )
     }
 
@@ -71,7 +71,7 @@ class PathTypeTest {
     fun `WinProgramData resolves to ProgramData in wine prefix`() {
         assertEquals(
             "$containerRoot/.wine/drive_c/ProgramData/",
-            PathType.WinProgramData.toAbsPath(container, appId, accountId),
+            normalized(PathType.WinProgramData.toAbsPath(container, appId, accountId)),
         )
     }
 
@@ -79,16 +79,16 @@ class PathTypeTest {
     fun `Root resolves to user home in wine prefix`() {
         assertEquals(
             "$containerRoot/.wine/drive_c/users/${ImageFs.USER}/",
-            PathType.Root.toAbsPath(container, appId, accountId),
+            normalized(PathType.Root.toAbsPath(container, appId, accountId)),
         )
     }
 
     @Test
     fun `paths are rooted in the container not a global shared directory`() {
-        val otherRoot = "/data/test/other-container"
+        val otherRoot = File("/data/test/other-container").absolutePath.replace('\\', '/')
         val otherContainer = Container("other-id").apply { setRootDir(File(otherRoot)) }
-        val path1 = PathType.WinAppDataRoaming.toAbsPath(container, appId, accountId)
-        val path2 = PathType.WinAppDataRoaming.toAbsPath(otherContainer, appId, accountId)
+        val path1 = normalized(PathType.WinAppDataRoaming.toAbsPath(container, appId, accountId))
+        val path2 = normalized(PathType.WinAppDataRoaming.toAbsPath(otherContainer, appId, accountId))
         assertTrue(path1.startsWith(containerRoot))
         assertTrue(path2.startsWith(otherRoot))
         assertNotEquals(path1, path2)
@@ -120,4 +120,6 @@ class PathTypeTest {
             PathType.None,
         ).forEach { assertFalse("${it.name} should not be isWindows", it.isWindows) }
     }
+
+    private fun normalized(path: String): String = path.replace('\\', '/')
 }

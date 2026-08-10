@@ -74,12 +74,29 @@ class HttpStatusException(val statusCode: Int, message: String) : Exception(mess
  * - Multiple chunks assemble into single files
  */
 @Singleton
-class GOGDownloadManager @Inject constructor(
+class GOGDownloadManager internal constructor(
     private val apiClient: GOGApiClient,
     private val parser: GOGManifestParser,
     private val gogManager: GOGManager,
-    @ApplicationContext private val context: Context,
+    private val context: Context,
+    private val parallelismProvider: () -> Pair<Int, Int>,
 ) {
+    @Inject
+    constructor(
+        apiClient: GOGApiClient,
+        parser: GOGManifestParser,
+        gogManager: GOGManager,
+        @ApplicationContext context: Context,
+    ) : this(
+        apiClient,
+        parser,
+        gogManager,
+        context,
+        parallelismProvider = {
+            DownloadSpeedConfig().let { it.maxDownloads to it.maxDecompress }
+        },
+    )
+
     private val WINDOWS_OS_VERSION = "windows"
 
     /**
@@ -803,9 +820,7 @@ class GOGDownloadManager @Inject constructor(
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val scope = CoroutineScope(Dispatchers.IO)
-            val speedConfig = DownloadSpeedConfig()
-            val parallelDownloads = speedConfig.maxDownloads
-            val parallelAssemble = speedConfig.maxDecompress
+            val (parallelDownloads, parallelAssemble) = parallelismProvider()
             val downloadHttpClient = Net.httpForParallelDownloads(parallelDownloads)
 
             val currentChunkUrlCandidates = ConcurrentHashMap(chunkUrlCandidates)

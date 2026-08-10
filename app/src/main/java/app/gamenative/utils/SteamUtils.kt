@@ -444,7 +444,6 @@ object SteamUtils {
         exeCommandLine: String,
         steamAppId: Int,
         workingDir: String?,
-        isUnpackFiles: Boolean,
         exeRunDirOverride: String? = null,
     ): String {
         val sanitizedExecutablePath = sanitizeColdClientArgumentText(executablePath)
@@ -455,19 +454,10 @@ object SteamUtils {
         val exeRunDir = sanitizedExeRunDirOverride
             ?: if (workingDir.isNullOrEmpty()) exePath.substringBeforeLast("\\") else ""
 
-        // Only include DllsToInjectFolder if unpackFiles is enabled
-        val injectionSection = if (isUnpackFiles) {
-            """
-                [Injection]
-                IgnoreLoaderArchDifference=1
-                DllsToInjectFolder=extra_dlls
-            """
-        } else {
-            """
+        val injectionSection = """
                 [Injection]
                 IgnoreLoaderArchDifference=1
             """
-        }
 
         return """
                 [SteamClient]
@@ -541,7 +531,6 @@ object SteamUtils {
                 exeCommandLine = launchConfig.exeCommandLine,
                 steamAppId = steamAppId,
                 workingDir = workingDir,
-                isUnpackFiles = container.isUnpackFiles,
                 exeRunDirOverride = launchConfig.exeRunDirOverride,
             )
         )
@@ -670,24 +659,46 @@ object SteamUtils {
             // Convert to Wine path format
             val container = ContainerUtils.getContainer(context, "STEAM_$steamAppId")
             val executablePath = container.executablePath
-            val drives = container.drives
-            val driveIndex = drives.indexOf(appDirPath)
-            val drive = if (driveIndex > 1) {
-                drives[driveIndex - 2]
-            } else {
-                Timber.e("Could not locate game drive")
-                'D'
-            }
-            val executableFile = "$drive:\\${executablePath}"
-
-            val exe = File(imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:").replace('\\', '/'))
-            val unpackedExe = File(imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:").replace('\\', '/') + ".unpacked.exe")
+            val exe = File(appDirPath, executablePath.replace('\\', '/'))
+            val unpackedExe = File(appDirPath, executablePath.replace('\\', '/') + ".unpacked.exe")
 
             if (unpackedExe.exists()) {
                 // Check if files are different (compare size and last modified time for efficiency)
-                val areFilesDifferent = !exe.exists() ||
+                var areFilesDifferent = !exe.exists() ||
                     exe.length() != unpackedExe.length() ||
                     exe.lastModified() != unpackedExe.lastModified()
+
+                if (!areFilesDifferent && exe.exists()) {
+                    try {
+                        exe.inputStream().buffered().use { s1 ->
+                            unpackedExe.inputStream().buffered().use { s2 ->
+                                val buf1 = ByteArray(8192)
+                                val buf2 = ByteArray(8192)
+                                var len: Int
+                                do {
+                                    len = s1.read(buf1)
+                                    val len2 = s2.read(buf2)
+                                    if (len != len2) {
+                                        areFilesDifferent = true
+                                        break
+                                    }
+                                    if (len > 0) {
+                                        for (i in 0 until len) {
+                                            if (buf1[i] != buf2[i]) {
+                                                areFilesDifferent = true
+                                                break
+                                            }
+                                        }
+                                    }
+                                    if (areFilesDifferent) break
+                                } while (len != -1)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Timber.w(e, "Error comparing content for ${exe.name}, assuming different")
+                        areFilesDifferent = true
+                    }
+                }
 
                 if (areFilesDifferent) {
                     Files.copy(unpackedExe.toPath(), exe.toPath(), StandardCopyOption.REPLACE_EXISTING)
@@ -988,10 +999,9 @@ object SteamUtils {
         Timber.i("Checking directory: $appDirPath")
         var restoredCount = 0
 
-        val imageFs = ImageFs.find(context)
-        val dosDevicesPath = File(imageFs.wineprefix, "dosdevices/a:")
+        val appDirFile = File(appDirPath)
 
-        dosDevicesPath.walkTopDown().maxDepth(10)
+        appDirFile.walkTopDown().maxDepth(10)
             .filter { it.isFile && it.name.endsWith(".original.exe", ignoreCase = true) }
             .forEach { file ->
                 try {
@@ -1183,10 +1193,9 @@ object SteamUtils {
         val hiddenDlcApps = SteamService.getHiddenDlcAppsOf(steamAppId)
         val appendedDlcIds = mutableListOf<Int>()
 
-        val forceDlc = container.isForceDlc()
         val appIniContent = buildString {
             appendLine("[app::dlcs]")
-            appendLine("unlock_all=${if (forceDlc) 1 else 0}")
+            appendLine("unlock_all=0")
             dlcIds?.sorted()?.forEach {
                 appendLine("$it=dlc$it")
                 appendedDlcIds.add(it)

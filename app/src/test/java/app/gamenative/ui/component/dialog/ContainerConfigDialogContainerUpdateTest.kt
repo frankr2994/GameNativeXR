@@ -140,8 +140,6 @@ class ContainerConfigDialogContainerUpdateTest {
             envVars = envVars,
             audioDriver = "alsa",
             showFPS = true,
-            forceDlc = true,
-            useLegacyDRM = true,
             launchRealSteam = true,
             allowSteamUpdates = true,
             steamType = Container.STEAM_TYPE_LIGHT,
@@ -164,7 +162,6 @@ class ContainerConfigDialogContainerUpdateTest {
             enableDInput = false,
             dinputMapperType = 2,
             disableMouseInput = true,
-            touchscreenMode = true,
             shooterMode = false,
             gestureConfig = "{\"longPressEnabled\":true,\"twoFingerTapAction\":\"middle_click\"}",
             shooterConfig = "{\"buttonLookThroughEnabled\":false,\"movementZoneSplit\":0.6}",
@@ -202,11 +199,8 @@ class ContainerConfigDialogContainerUpdateTest {
         assertFalse(container.isShowFPS)
         assertEquals(mutated.launchRealSteam, container.isLaunchRealSteam)
         assertEquals(mutated.allowSteamUpdates, container.isAllowSteamUpdates)
-        assertEquals(mutated.forceDlc, container.isForceDlc)
-        assertEquals(mutated.useLegacyDRM, container.isUseLegacyDRM)
         assertEquals(mutated.sdlControllerAPI, container.isSdlControllerAPI)
         assertEquals(mutated.disableMouseInput, container.isDisableMouseInput)
-        assertEquals(mutated.touchscreenMode, container.isTouchscreenMode)
         assertEquals(mutated.shooterMode, container.isShooterMode)
         assertEquals(mutated.gestureConfig, container.gestureConfig)
         assertEquals(mutated.shooterConfig, container.shooterConfig)
@@ -285,8 +279,6 @@ class ContainerConfigDialogContainerUpdateTest {
             envVars = envVars,
             audioDriver = "alsa",
             showFPS = true,
-            forceDlc = true,
-            useLegacyDRM = true,
             launchRealSteam = true,
             allowSteamUpdates = true,
             steamType = Container.STEAM_TYPE_LIGHT,
@@ -309,7 +301,6 @@ class ContainerConfigDialogContainerUpdateTest {
             enableDInput = false,
             dinputMapperType = 2,
             disableMouseInput = true,
-            touchscreenMode = true,
             shooterMode = false,
             gestureConfig = "{\"longPressEnabled\":true,\"twoFingerTapAction\":\"middle_click\"}",
             shooterConfig = "{\"buttonLookThroughEnabled\":false,\"movementZoneSplit\":0.6}",
@@ -348,11 +339,8 @@ class ContainerConfigDialogContainerUpdateTest {
         assertFalse(container.isShowFPS)
         assertEquals(mutated.launchRealSteam, container.isLaunchRealSteam)
         assertEquals(mutated.allowSteamUpdates, container.isAllowSteamUpdates)
-        assertEquals(mutated.forceDlc, container.isForceDlc)
-        assertEquals(mutated.useLegacyDRM, container.isUseLegacyDRM)
         assertEquals(mutated.sdlControllerAPI, container.isSdlControllerAPI)
         assertEquals(mutated.disableMouseInput, container.isDisableMouseInput)
-        assertEquals(mutated.touchscreenMode, container.isTouchscreenMode)
         assertEquals(mutated.shooterMode, container.isShooterMode)
         assertEquals(mutated.gestureConfig, container.gestureConfig)
         assertEquals(mutated.shooterConfig, container.shooterConfig)
@@ -463,13 +451,10 @@ class ContainerConfigDialogContainerUpdateTest {
             showFPS = true,
             launchRealSteam = true,
             allowSteamUpdates = true,
-            forceDlc = true,
-            useLegacyDRM = true,
             sdlControllerAPI = true,
             enableXInput = true,
             enableDInput = true,
             disableMouseInput = true,
-            touchscreenMode = true,
             shooterMode = true,
             wow64Mode = true
         )
@@ -479,11 +464,8 @@ class ContainerConfigDialogContainerUpdateTest {
         assertFalse(container.isShowFPS)
         assertTrue(container.isLaunchRealSteam)
         assertTrue(container.isAllowSteamUpdates)
-        assertTrue(container.isForceDlc)
-        assertTrue(container.isUseLegacyDRM)
         assertTrue(container.isSdlControllerAPI)
         assertTrue(container.isDisableMouseInput)
-        assertTrue(container.isTouchscreenMode)
         assertTrue(container.isShooterMode)
     }
 
@@ -492,19 +474,16 @@ class ContainerConfigDialogContainerUpdateTest {
         // Start with true values
         container.isShowFPS = true
         container.isLaunchRealSteam = true
-        container.isForceDlc = true
 
         val containerData = ContainerData(
             showFPS = false,
             launchRealSteam = false,
-            forceDlc = false
         )
 
         ContainerUtils.applyToContainer(context, container, containerData, saveToDisk = false)
 
         assertFalse(container.isShowFPS)
         assertFalse(container.isLaunchRealSteam)
-        assertFalse(container.isForceDlc)
     }
 
     @Test

@@ -1,7 +1,6 @@
 package app.gamenative.service.gog
 
 import android.content.Context
-import app.gamenative.PrefManager
 import app.gamenative.data.DownloadInfo
 import app.gamenative.data.GOGGame
 import app.gamenative.service.gog.api.BuildsResponse
@@ -25,7 +24,6 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.kotlin.any
 import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.argumentCaptor
@@ -33,13 +31,8 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
-import org.robolectric.annotation.Config
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
-@Config(manifest = Config.NONE, application = android.app.Application::class)
 class GOGDownloadManagerTest {
     private lateinit var apiClient: GOGApiClient
     private lateinit var parser: GOGManifestParser
@@ -53,9 +46,13 @@ class GOGDownloadManagerTest {
         parser = mock()
         gogManager = mock()
         context = mock()
-        manager = GOGDownloadManager(apiClient, parser, gogManager, context)
-        PrefManager.init(RuntimeEnvironment.getApplication())
-        PrefManager.downloadSpeed = 32
+        manager = GOGDownloadManager(
+            apiClient,
+            parser,
+            gogManager,
+            context,
+            parallelismProvider = { 32 to 8 },
+        )
     }
 
     // ===== Gen 2 =====
