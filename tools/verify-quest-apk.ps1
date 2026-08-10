@@ -114,6 +114,8 @@ $abiLine = if ($nativeCodeLine) { $nativeCodeLine.Line } else { "<no native-code
 $hasArm64 = $abiLine -match "arm64-v8a"
 $hasMetaQuestActivity = $manifestTree -match "com.winlator.xr.runtime.MetaQuest"
 $hasQuestVrCategory = $manifestTree -match "com.oculus.intent.category.VR"
+$hasOpenXrImmersiveCategory = $manifestTree -match "org.khronos.openxr.intent.category.IMMERSIVE_HMD"
+$hasOperatorExperimentalFeature = $manifestTree -match "com.oculus.experimental.enabled"
 $hash = (Get-FileHash -LiteralPath $resolvedApk -Algorithm SHA256).Hash
 $apkItem = Get-Item -LiteralPath $resolvedApk
 $gitCommit = (Invoke-External "git" @("rev-parse", "HEAD"))
@@ -167,6 +169,11 @@ try {
     $operatorLayerChecks = @(
         switch ($OperatorLayerPolicy) {
             "Require" {
+                [PSCustomObject]@{
+                    Name = "Debug Meta operator experimental feature"
+                    Pass = $hasOperatorExperimentalFeature
+                    Detail = if ($hasOperatorExperimentalFeature) { "com.oculus.experimental.enabled declared" } else { "missing manifest feature" }
+                }
                 foreach ($artifact in $operatorArtifacts) {
                     $sourceExists = Test-Path -LiteralPath $artifact.Source
                     $entry = $archiveEntries[$artifact.Entry]
@@ -181,6 +188,11 @@ try {
                 }
             }
             "Forbid" {
+                [PSCustomObject]@{
+                    Name = "Release excludes Meta operator experimental feature"
+                    Pass = -not $hasOperatorExperimentalFeature
+                    Detail = if ($hasOperatorExperimentalFeature) { "unexpected manifest feature: com.oculus.experimental.enabled" } else { "absent" }
+                }
                 foreach ($artifact in $operatorArtifacts) {
                     $entryExists = $archiveEntries.ContainsKey($artifact.Entry)
                     [PSCustomObject]@{
@@ -201,7 +213,7 @@ $checks = @(
     [PSCustomObject]@{ Name = "Expected package"; Pass = $packageName -eq $expectedPackage; Detail = $packageName }
     [PSCustomObject]@{ Name = "ARM64 native libraries"; Pass = $hasArm64; Detail = $abiLine }
     [PSCustomObject]@{ Name = "Meta Quest VR activity"; Pass = $hasMetaQuestActivity; Detail = "com.winlator.xr.runtime.MetaQuest" }
-    [PSCustomObject]@{ Name = "Quest VR category"; Pass = $hasQuestVrCategory; Detail = "com.oculus.intent.category.VR" }
+    [PSCustomObject]@{ Name = "Quest VR categories"; Pass = $hasQuestVrCategory -and $hasOpenXrImmersiveCategory; Detail = "legacy=$hasQuestVrCategory openxrImmersiveHmd=$hasOpenXrImmersiveCategory" }
     [PSCustomObject]@{ Name = "APK signing"; Pass = $signing -match "Verified"; Detail = ($signing -split "`r?`n" | Select-Object -First 1) }
     [PSCustomObject]@{ Name = "Quest XR ABI contract"; Pass = -not $hasArm32XrLibrary; Detail = "Quest XR native pair is arm64-v8a-only; armeabi-v7a remains a general-app ABI" }
 )
