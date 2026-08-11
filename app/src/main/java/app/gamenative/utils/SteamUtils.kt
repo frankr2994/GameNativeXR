@@ -14,6 +14,8 @@ import app.gamenative.enums.Marker
 import app.gamenative.enums.SpecialGameSaveMapping
 import app.gamenative.enums.SteamRealm
 import app.gamenative.events.SteamEvent
+import app.gamenative.launch.inspect.PeArchitecture
+import app.gamenative.launch.install.ResolvedGameInstall
 import app.gamenative.service.SteamService
 import app.gamenative.service.SteamService.Companion.getAppDirName
 import app.gamenative.service.SteamService.Companion.getAppInfoOf
@@ -55,6 +57,13 @@ object SteamUtils {
         val exeCommandLine: String,
         val exeRunDirOverride: String? = null,
     )
+
+    internal fun coldClientLoaderExecutable(architecture: PeArchitecture?): String =
+        if (architecture == PeArchitecture.X86_32) {
+            "steamclient_loader_x32.exe"
+        } else {
+            "steamclient_loader_x64.exe"
+        }
 
     /**
      * True when a stored Steam session exists (offline-launch gate).
@@ -445,12 +454,15 @@ object SteamUtils {
         steamAppId: Int,
         workingDir: String?,
         exeRunDirOverride: String? = null,
+        exePathOverride: String? = null,
     ): String {
         val sanitizedExecutablePath = sanitizeColdClientArgumentText(executablePath)
         val sanitizedExeCommandLine = sanitizeColdClientArgumentText(exeCommandLine)
         val sanitizedExeRunDirOverride = exeRunDirOverride?.let(::sanitizeColdClientArgumentText)
+        val sanitizedExePathOverride = exePathOverride?.let(::sanitizeColdClientArgumentText)
         val exeBaseDir = sanitizedExeRunDirOverride ?: "steamapps\\common\\$gameName"
-        val exePath = "$exeBaseDir\\${sanitizedExecutablePath.replace("/", "\\")}"
+        val exePath = sanitizedExePathOverride
+            ?: "$exeBaseDir\\${sanitizedExecutablePath.replace("/", "\\")}"
         val exeRunDir = sanitizedExeRunDirOverride
             ?: if (workingDir.isNullOrEmpty()) exePath.substringBeforeLast("\\") else ""
 
@@ -511,7 +523,12 @@ object SteamUtils {
                 Character.getType(char) != Character.FORMAT.toInt()
         }.trim()
 
-    internal fun writeColdClientIni(steamAppId: Int, container: Container, launchInfo: LaunchInfo? = null) {
+    internal fun writeColdClientIni(
+        steamAppId: Int,
+        container: Container,
+        launchInfo: LaunchInfo? = null,
+        resolvedInstall: ResolvedGameInstall? = null,
+    ) {
         val gameName = getAppDirName(getAppInfoOf(steamAppId))
         val workingDir = launchInfo?.workingDir
         val iniFile = File(container.getRootDir(), ".wine/drive_c/Program Files (x86)/Steam/ColdClientLoader.ini")
@@ -531,7 +548,9 @@ object SteamUtils {
                 exeCommandLine = launchConfig.exeCommandLine,
                 steamAppId = steamAppId,
                 workingDir = workingDir,
-                exeRunDirOverride = launchConfig.exeRunDirOverride,
+                exeRunDirOverride = resolvedInstall?.wineWorkingDirectoryPath?.value
+                    ?: launchConfig.exeRunDirOverride,
+                exePathOverride = resolvedInstall?.wineExecutablePath?.value,
             )
         )
     }
@@ -572,6 +591,11 @@ object SteamUtils {
      * with reduced resource usage and disabled community features
      */
     private fun setupLightweightSteamConfig(imageFs: ImageFs, steamId64: String?) {
+        if (steamId64 == null) {
+            Timber.w("Steam account ID unavailable; skipping user-specific lightweight Steam configuration")
+            return
+        }
+
         Timber.i("Setting up lightweight steam configs")
         try {
             val steamPath = File(imageFs.wineprefix, "drive_c/Program Files (x86)/Steam")
@@ -896,8 +920,16 @@ object SteamUtils {
             cfgFile.writeText("BootStrapperInhibitAll=Enable\nBootStrapperForceSelfUpdate=False")
         }
 
-        // Update or modify localconfig.vdf
-        updateOrModifyLocalConfig(imageFs, container, steamAppId.toString(), SteamService.userSteamId!!.accountID.toString())
+        val steamAccountId = getSteam3AccountId()?.toString()
+
+        // Update or modify localconfig.vdf when user-specific Steam state is available.
+        // The live Steam service may not be initialized yet when a launch starts, so
+        // use the persisted account ID fallback instead of force-unwrapping it.
+        if (steamAccountId != null) {
+            updateOrModifyLocalConfig(imageFs, container, steamAppId.toString(), steamAccountId)
+        } else {
+            Timber.w("Steam account ID unavailable; skipping user-specific localconfig preparation")
+        }
 
         skipFirstTimeSteamSetup(imageFs.rootDir)
         val appDirPath = SteamService.getAppDirPath(steamAppId)
@@ -909,7 +941,7 @@ object SteamUtils {
         Timber.i("Checking directory: $appDirPath")
 
         autoLoginUserChanges(imageFs)
-        setupLightweightSteamConfig(imageFs, SteamService.userSteamId!!.accountID.toString())
+        setupLightweightSteamConfig(imageFs, steamAccountId)
 
         putBackSteamDlls(appDirPath)
 
@@ -1573,8 +1605,15 @@ object SteamUtils {
     }
 
     fun getSteam3AccountId(): Long? {
-        return SteamService.userSteamId?.accountID?.toLong()
-            ?: PrefManager.steamUserAccountId.takeIf { it != 0 }?.toLong()
+        return resolveSteam3AccountId(
+            liveAccountId = SteamService.userSteamId?.accountID?.toLong(),
+            persistedAccountId = PrefManager.steamUserAccountId,
+        )
+    }
+
+    internal fun resolveSteam3AccountId(liveAccountId: Long?, persistedAccountId: Int): Long? {
+        return liveAccountId?.takeIf { it != 0L }
+            ?: persistedAccountId.takeIf { it != 0 }?.toLong()
     }
 
     /**
@@ -1653,4 +1692,3 @@ object SteamUtils {
         }
     }
 }
-

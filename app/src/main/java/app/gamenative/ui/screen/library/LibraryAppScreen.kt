@@ -925,8 +925,9 @@ internal fun AppScreenContent(
                                 text = text,
                                 onClick = {
                                     if (xr && isInstalled) {
-                                        val customGame = displayInfo.appId.startsWith("CUSTOM")
-                                        XrActivity.openIntent(context, displayInfo.appId, !customGame, false)
+                                        // The primary action launches the selected game. File Explorer belongs
+                                        // exclusively to the separate Run Container action.
+                                        XrActivity.openIntent(context, displayInfo.appId, false, false)
                                     } else {
                                         onDownloadInstallClick()
                                     }

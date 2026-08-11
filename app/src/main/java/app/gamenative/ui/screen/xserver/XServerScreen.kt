@@ -111,6 +111,7 @@ import app.gamenative.launch.LaunchRequest
 import app.gamenative.launch.TerminalLaunchResult
 import app.gamenative.launch.backend.XServerLaunchExecutionBackend
 import app.gamenative.launch.inspect.ExecutableInspectorImpl
+import app.gamenative.launch.inspect.PeArchitecture
 import app.gamenative.launch.install.GameInstallResolutionRequest
 import app.gamenative.launch.install.GameInstallResolverImpl
 import app.gamenative.launch.install.InstallCandidateSource
@@ -3591,6 +3592,7 @@ private fun runXServerEnvironmentSetup(
     suspend fun performExistingSetup(
         lifecycle: XServerLaunchLifecycle?,
         resolvedInstall: ResolvedGameInstall?,
+        executableArchitecture: PeArchitecture?,
     ) {
         val prepared = requireNotNull(preparedEnvironment) { "Execution container was not prepared" }
         lifecycle?.prefixPreparationStarted()
@@ -3636,6 +3638,7 @@ private fun runXServerEnvironmentSetup(
             isOffline,
             lifecycle,
             resolvedInstall,
+            executableArchitecture,
         )
         if (!PluviaApp.isActivityInForeground && !neverSuspend && !XrActivity.isEnabled()) {
             PluviaApp.xEnvironment?.onPause()
@@ -3706,7 +3709,11 @@ private fun runXServerEnvironmentSetup(
                             "requiredComponentIds" to plan.executionConfig.requiredPackagedComponentIds.sorted().joinToString(","),
                         ),
                     )
-                    performExistingSetup(lifecycle, plan.resolvedInstall)
+                    performExistingSetup(
+                        lifecycle,
+                        plan.resolvedInstall,
+                        plan.executableIdentity.architecture,
+                    )
                 } catch (failure: Throwable) {
                     executionOverlay?.close()
                     executionOverlay = null
@@ -3770,7 +3777,7 @@ private fun runXServerEnvironmentSetup(
         }
     } else {
         preparedEnvironment = prepareExecutionContainer()
-        runBlocking { performExistingSetup(null, null) }
+        runBlocking { performExistingSetup(null, null, null) }
     }
 }
 
@@ -3790,6 +3797,7 @@ private fun setupXEnvironment(
     offline: Boolean = false,
     launchLifecycle: XServerLaunchLifecycle? = null,
     resolvedInstall: ResolvedGameInstall? = null,
+    executableArchitecture: PeArchitecture? = null,
 ): XEnvironment {
     DiagnosticSession.record(
         subsystem = "environment",
@@ -3966,6 +3974,7 @@ private fun setupXEnvironment(
                 gameSource,
                 offline,
                 resolvedInstall,
+                executableArchitecture,
             ) +
             (if (container.execArgs.isNotEmpty()) " " + container.execArgs else "")
         preInstallCommands = PreInstallSteps.getPreInstallCommands(
@@ -4357,6 +4366,7 @@ private fun getWineStartCommand(
     gameSource: GameSource,
     offline: Boolean,
     resolvedInstall: ResolvedGameInstall? = null,
+    executableArchitecture: PeArchitecture? = null,
 ): String {
     val tempDir = File(container.getRootDir(), ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
@@ -4378,7 +4388,7 @@ private fun getWineStartCommand(
         }
         if (!false){
             // Create ColdClientLoader.ini file
-            SteamUtils.writeColdClientIni(gameId, container, appLaunchInfo)
+            SteamUtils.writeColdClientIni(gameId, container, appLaunchInfo, resolvedInstall)
         }
         val controllerVdfText = SteamService.resolveSteamControllerVdfText(gameId)
         if (controllerVdfText.isNullOrEmpty()) {
@@ -4764,7 +4774,8 @@ private fun getWineStartCommand(
                 }
                 "\"$drive:/${executablePath}\""
             } else {
-                "\"C:\\\\Program Files (x86)\\\\Steam\\\\steamclient_loader_x64.exe\""
+                val loaderExecutable = SteamUtils.coldClientLoaderExecutable(executableArchitecture)
+                "\"C:\\\\Program Files (x86)\\\\Steam\\\\$loaderExecutable\""
             }
         }
     }
@@ -6253,18 +6264,28 @@ private fun extractSteamFiles(
         BionicSteamAssetsDependency.extractLsteamclientIntoPrefix(context, container)
 
         try {
-            val accountId = SteamService.userSteamId?.accountID?.toInt() ?: 0
+            // The XR process often starts before SteamService has recreated its live
+            // SteamID. Use the persisted account fallback shared with the main
+            // process; ActiveUser=0 makes Steamworks games treat Steam as absent.
+            val accountId = SteamUtils.getSteam3AccountId()?.toInt()
             val userRegFile = File(container.rootDir, ".wine/user.reg")
             val steamRoot = "C:\\Program Files (x86)\\Steam"
             val activeProcessKey = "Software\\Valve\\Steam\\ActiveProcess"
             WineRegistryEditor(userRegFile).use { editor ->
                 editor.setCreateKeyIfNotExist(true)
-                editor.setDwordValue(activeProcessKey, "ActiveUser", accountId)
+                if (accountId != null) {
+                    editor.setDwordValue(activeProcessKey, "ActiveUser", accountId)
+                } else {
+                    Timber.w("Steam account ID unavailable; ActiveUser registry value was not updated")
+                }
                 editor.setStringValue(activeProcessKey, "SteamClientDll", "$steamRoot\\steamclient.dll")
                 editor.setStringValue(activeProcessKey, "SteamClientDll64", "$steamRoot\\steamclient64.dll")
                 editor.setStringValue(activeProcessKey, "Universe", "Public")
             }
-            Timber.i("Set HKCU\\Software\\Valve\\Steam\\ActiveProcess registry values (bionic mode, ActiveUser=$accountId)")
+            Timber.i(
+                "Set HKCU\\Software\\Valve\\Steam\\ActiveProcess registry values " +
+                    "(bionic mode, ActiveUser=${if (accountId != null) "set" else "unavailable"})",
+            )
         } catch (e: Exception) {
             Timber.e(e, "Failed to write ActiveProcess registry values")
         }
